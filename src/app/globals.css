@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@theme {
+  --color-paper: #faf9f6;
+  --color-surface: #ffffff;
+  --color-ink: #202020;
+  --color-ink-2: #4a4744;
+  --color-muted: #737373;
+  --color-line: #eae7e1;
+  --color-line-2: #ddd8cf;
+  --color-gold: #b68a45;
+  --color-gold-2: #99713a;
+  --color-gold-soft: #f3ead9;
+  --color-maroon: #7a1a20;
+  --color-success: #16835d;
+  --color-warning: #d49a35;
+  --color-danger: #d84a4a;
+
+  --font-sans: "Inter Variable", "Kantumruy Pro", system-ui, sans-serif;
+  --font-km: "Kantumruy Pro", "Inter Variable", sans-serif;
+  --font-moul: "Moul", "Kantumruy Pro", serif;
+  --font-moulpali: "Moulpali", "Kantumruy Pro", serif;
+  --font-dangrek: "Dangrek", "Kantumruy Pro", sans-serif;
+  --font-battambang: "Battambang", "Kantumruy Pro", serif;
+  --font-serif-km: "Noto Serif Khmer", serif;
+  --font-cormorant: "Cormorant Garamond", "Noto Serif Khmer", serif;
+  --font-playfair: "Playfair Display", "Noto Serif Khmer", serif;
+  --font-pinyon: "Pinyon Script", "Cormorant Garamond", cursive;
+
+  --radius-xl2: 1.25rem;
+  --shadow-soft: 0 1px 2px rgb(32 32 32 / 0.04), 0 8px 24px -12px rgb(32 32 32 / 0.12);
+  --shadow-lift: 0 2px 4px rgb(32 32 32 / 0.04), 0 24px 48px -20px rgb(60 40 10 / 0.25);
+
+  --animate-fade-up: fade-up 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-float: float 7s ease-in-out infinite;
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+  50% { transform: translateY(-10px) rotate(var(--r, 0deg)); }
+}
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    text-rendering: optimizeLegibility;
+  }
+  /* Khmer: never add tracking (breaks subscript consonants) and give vowels/coeng room above & below. */
+  /* Set the Khmer UI font once at the document level so components/templates can override it and children inherit. */
+  html:lang(km) body, .km { font-family: var(--font-km); }
+  :lang(km), .km {
+    letter-spacing: 0 !important;
+    line-height: 1.75;
+  }
+  :lang(km) :is(h1, h2, h3, h4) { line-height: 1.6; }
+  ::selection { background: #e8d3a8; color: #202020; }
+  :focus-visible { outline: 2px solid var(--color-gold); outline-offset: 2px; border-radius: 6px; }
+}
+
+@layer components {
+  .container-x { @apply mx-auto w-full max-w-[1200px] px-5 sm:px-8; }
+  .hairline { border-color: var(--color-line); }
+  .eyebrow { @apply text-[12px] font-medium uppercase text-gold-2; letter-spacing: 0.14em; }
+  :lang(km) .eyebrow { @apply text-[13px] normal-case; letter-spacing: 0; }
+  .paper-grain {
+    background-image: radial-gradient(rgb(120 90 40 / 0.05) 1px, transparent 1px);
+    background-size: 3px 3px;
+  }
+  .num { font-variant-numeric: tabular-nums; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+}
+
+/* Scaled template thumbnails: show content immediately and size heroes to the phone canvas. */
+.inv-thumb .inv-reveal { opacity: 1 !important; transform: none !important; }
+.inv-thumb [class*="min-h-[100svh]"], .inv-thumb [class*="min-h-[90svh]"] { min-height: 780px !important; }
+.inv-thumb iframe { display: none; }

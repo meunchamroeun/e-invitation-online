@@ -1,0 +1,21 @@
+// Self-hosted fonts (no runtime call to Google). Browsers only download faces that are actually used.
+import "@fontsource/kantumruy-pro/400.css";
+import "@fontsource/kantumruy-pro/500.css";
+import "@fontsource/kantumruy-pro/600.css";
+import "@fontsource/kantumruy-pro/700.css";
+import "@fontsource/battambang/khmer-400.css";
+import "@fontsource/battambang/khmer-700.css";
+import "@fontsource/noto-serif-khmer/400.css";
+import "@fontsource/noto-serif-khmer/600.css";
+import "@fontsource/moul/400.css";
+import "@fontsource/moulpali/400.css";
+import "@fontsource/dangrek/400.css";
+import "@fontsource-variable/inter";
+import "@fontsource/cormorant-garamond/latin-400.css";
+import "@fontsource/cormorant-garamond/latin-500.css";
+import "@fontsource/cormorant-garamond/latin-600.css";
+import "@fontsource/cormorant-garamond/latin-400-italic.css";
+import "@fontsource/pinyon-script/400.css";
+import "@fontsource/playfair-display/400.css";
+import "@fontsource/playfair-display/600.css";
+import "@fontsource/playfair-display/400-italic.css";

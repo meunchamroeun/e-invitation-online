@@ -1,0 +1,34 @@
+import { desc, eq } from "drizzle-orm";
+import { requireEvent } from "@/lib/auth/event-access";
+import { can } from "@/lib/auth/permissions";
+import { db, schema } from "@/lib/db";
+import { getI18n } from "@/i18n/server";
+import { Builder } from "@/components/builder/builder";
+import { InvitationDocSchema } from "@/features/invitations/doc";
+import { eventInfo } from "@/features/invitations/load";
+
+export const metadata = { title: "Builder" };
+
+export default async function BuilderPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const { event, role } = await requireEvent(id, "event.edit");
+  const { locale } = await getI18n();
+  const media = await db.select({ id: schema.mediaAssets.id, kind: schema.mediaAssets.kind }).from(schema.mediaAssets).where(eq(schema.mediaAssets.eventId, id)).orderBy(desc(schema.mediaAssets.createdAt)).limit(200);
+  const doc = InvitationDocSchema.parse(event.draft);
+  return (
+    <Builder
+      eventId={event.id}
+      eventTitle={event.title}
+      initialDoc={doc}
+      initialRevision={event.revision}
+      templateSlug={event.templateSlug}
+      event={eventInfo(event)}
+      media={media.map((m) => ({ ...m, url: `/api/media/${m.id}` }))}
+      locale={locale}
+      giftLocked={event.giftQrLocked}
+      canEditGift={can(role, "giftqr.edit")}
+      canPublish={can(role, "event.publish")}
+      published={event.status === "published"}
+    />
+  );
+}
