@@ -8,6 +8,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  experimental: { serverActions: { bodySizeLimit: "9mb" } },
   serverExternalPackages: ["@electric-sql/pglite"],
   poweredByHeader: false,
   async headers() {

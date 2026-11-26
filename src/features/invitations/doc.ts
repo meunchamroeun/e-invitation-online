@@ -103,6 +103,7 @@ const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 export const InvitationDocSchema = z.object({
   v: z.literal(1),
   defaultLocale: z.enum(["km", "en"]).default("km"),
+  shareImage: MediaRef.optional(),
   theme: z.object({
     palette: z
       .object({ bg: hex, surface: hex, ink: hex, muted: hex, primary: hex, accent: hex, onPrimary: hex })

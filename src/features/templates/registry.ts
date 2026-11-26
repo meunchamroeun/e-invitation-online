@@ -181,6 +181,22 @@ export const TEMPLATES: TemplateDef[] = [
     fonts: { display: "kantumruy", body: "kantumruy", latin: "inter" },
     envelope: { body: "#1E3A6E", flap: "#24457F", seal: "#C79A3C", liner: "#C79A3C" },
   },
+  {
+    slug: "graduation-honours", version: 1, category: "graduation", family: "editorial", style: "modern", color: "navy", tier: "free",
+    name: l("អបអរសាទរថ្ងៃបញ្ចប់ការសិក្សា", "Graduation Honours"),
+    description: l("ពណ៌ខៀវចាស់ និងមាសសម្រាប់ពិធីប្រគល់សញ្ញាបត្រ ឬពិធីជប់លៀងអបអរសាទរ", "Midnight blue and gold for a commencement ceremony or graduation celebration"),
+    palette: P("#F1F3F8", "#FFFFFF", "#141D35", "#505D73", "#243553", "#B98B45", "#FFFFFF"),
+    fonts: { display: "kantumruy", body: "kantumruy", latin: "playfair" },
+    envelope: { body: "#243553", flap: "#32486A", seal: "#B98B45", liner: "#F3E4C8" },
+  },
+  {
+    slug: "garden-gathering", version: 1, category: "custom", family: "emerald", style: "floral", color: "green", tier: "free",
+    name: l("ជួបជុំក្នុងសួន", "Garden Gathering"),
+    description: l("ស្លឹកបៃតង និងផ្ទៃពណ៌ភ្លុកសម្រាប់ពិធីជួបជុំ ឬកម្មវិធីផ្ទាល់ខ្លួន", "Botanical details and warm ivory for gatherings and custom events"),
+    palette: P("#F5F2E8", "#FFFCF4", "#263B2E", "#526457", "#315440", "#9D7444", "#FFFFFF"),
+    fonts: { display: "moulpali", body: "battambang", latin: "cormorant" },
+    envelope: { body: "#DFE6D5", flap: "#CEDAC4", seal: "#315440", liner: "#C9A872" },
+  },
 ];
 
 export function getTemplate(slug: string): TemplateDef | undefined {
@@ -260,6 +276,8 @@ function genericSample(t: TemplateDef): Section[] {
     religious: [l("ពិធីបុណ្យកឋិនទាន", "Kathina Ceremony"), l("វត្តភ្នំ", "Wat Phnom"), l("សូមអញ្ជើញចូលរួមកសាងកុសល", "Join us in making merit")],
     funeral: [l("សេចក្ដីជូនដំណឹង", "In loving memory"), l("លោក ហេង សុខ", "Mr. Heng Sok"), l("សូមអញ្ជើញចូលរួមពិធីបុណ្យ", "You are respectfully invited to the funeral rites")],
     corporate: [l("ពិធីបើកសម្ពោធ", "Grand Opening"), l("ក្រុមហ៊ុនគំរូ", "Sample Company"), l("សូមគោរពអញ្ជើញចូលរួម", "You are cordially invited")],
+    graduation: [l("ពិធីប្រគល់សញ្ញាបត្រ", "Graduation Celebration"), l("រតនា", "Rathana"), l("សូមអញ្ជើញចូលរួមអបអរសាទរថ្ងៃដ៏ពិសេសនេះ", "Join us to celebrate this milestone")],
+    custom: [l("ពិធីជួបជុំ", "A Garden Gathering"), l("គ្រួសារ សុខ", "The Sok Family"), l("រីករាយជួបជុំ និងចែករំលែកអនុស្សាវរីយ៍", "Join us for an evening together")],
   };
   const [kicker, names, tagline] = titles[c] ?? [l("ការអញ្ជើញ", "Invitation"), l("ឈ្មោះម្ចាស់កម្មវិធី", "Host name"), l("", "")];
   const sections: Section[] = [
@@ -285,6 +303,8 @@ function genericSample(t: TemplateDef): Section[] {
           ? [ { time: "07:00", title: l("ពិធីសូត្រមន្ត", "Chanting"), desc: l(), icon: "lotus" }, { time: "13:00", title: l("ពិធីបូជាសព", "Cremation"), desc: l(), icon: "flame" } ]
           : c === "corporate"
           ? [ { time: "08:00", title: l("ចុះឈ្មោះ", "Registration"), desc: l(), icon: "chan" }, { time: "09:00", title: l("សុន្ទរកថា", "Opening remarks"), desc: l(), icon: "mic" }, { time: "10:30", title: l("ទស្សនកិច្ច និងអាហារ", "Tour & reception"), desc: l(), icon: "glass" } ]
+          : c === "graduation"
+          ? [ { time: "16:30", title: l("ស្វាគមន៍ភ្ញៀវ", "Guest arrival"), desc: l(), icon: "chan" }, { time: "17:00", title: l("ពិធីប្រគល់សញ្ញាបត្រ", "Commencement"), desc: l(), icon: "mic" }, { time: "18:30", title: l("ថតរូបអនុស្សាវរីយ៍", "Photos & celebration"), desc: l(), icon: "chan" } ]
           : [ { time: "17:30", title: l("ទទួលភ្ញៀវ", "Welcome"), desc: l(), icon: "chan" }, { time: "18:30", title: l("ពិសាអាហារ", "Dinner"), desc: l(), icon: "glass" }, { time: "20:00", title: l("កម្សាន្ត", "Party"), desc: l(), icon: "music" } ],
       },
     },
@@ -341,9 +361,17 @@ export function sampleEvent(t: TemplateDef) {
  * Build a new event's draft from a template WITHOUT inventing personal details:
  * names come from the user, parents/story/gift accounts start empty, photos are placeholders.
  */
-export function starterDoc(t: TemplateDef, input: { hostNames: LText }): InvitationDoc {
+export function starterDoc(t: TemplateDef, input: {
+  hostNames: LText;
+  partnerNames?: readonly [string, string];
+  message?: string;
+  agenda?: { time: string; title: string; notes: string }[];
+  locale?: "km" | "en";
+}): InvitationDoc {
   const doc = sampleDoc(t);
+  doc.defaultLocale = input.locale ?? doc.defaultLocale;
   const blank = l();
+  const localize = (text: string) => doc.defaultLocale === "en" ? l("", text) : l(text, "");
   doc.sections = doc.sections.map((s): Section => {
     switch (s.type) {
       case "cover":
@@ -351,9 +379,31 @@ export function starterDoc(t: TemplateDef, input: { hostNames: LText }): Invitat
       case "hero":
         return { ...s, data: { ...s.data, names: input.hostNames } };
       case "invitation":
-        return { ...s, data: { ...s.data, leftFamily: { father: blank, mother: blank }, rightFamily: { father: blank, mother: blank } } };
+        return {
+          ...s,
+          data: {
+            ...s.data, leftFamily: { father: blank, mother: blank }, rightFamily: { father: blank, mother: blank },
+            body: input.message ? localize(input.message) : s.data.body,
+          },
+        };
       case "couple":
-        return { ...s, data: { left: { ...s.data.left, name: blank, bio: blank }, right: { ...s.data.right, name: blank, bio: blank } } };
+        return {
+          ...s,
+          data: {
+            left: { ...s.data.left, name: input.partnerNames ? localize(input.partnerNames[0]) : blank, bio: blank },
+            right: { ...s.data.right, name: input.partnerNames ? localize(input.partnerNames[1]) : blank, bio: blank },
+          },
+        };
+      case "schedule":
+        if (!input.agenda) return s;
+        return {
+          ...s,
+          hidden: input.agenda.length === 0,
+          data: {
+            ...s.data,
+            items: input.agenda.map(({ time, title, notes }) => ({ time, title: localize(title), desc: localize(notes), icon: "chan" })),
+          },
+        };
       case "story":
         return { ...s, hidden: true, data: { ...s.data, chapters: [] } };
       case "thankyou":

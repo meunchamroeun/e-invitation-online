@@ -9,11 +9,11 @@ Requirements: **Node 20+** (22 recommended). No database server needed — local
 ```bash
 npm install
 SEED_ADMIN_EMAIL=you@example.com SEED_ADMIN_PASSWORD='choose-a-password' npm run setup
-#   ↳ creates .env.local with a random APP_SECRET, runs migrations, seeds 4 plans + 16 templates + your super-admin
+#   ↳ creates .env.local with a random APP_SECRET, runs migrations, and seeds plans, templates, and your super-admin
 npm run dev            # http://localhost:3000
 ```
 
-Then: register → **បង្កើតកម្មវិធីថ្មី / New event** → pick a template → edit in the builder → **Publish** → add guests → copy a guest link and open it in a private window.
+Then register, open **បង្កើតកម្មវិធីថ្មី / New event**, and choose an event type. Browse and preview the matching invitation designs directly in the form. Add an invitation message, agenda, or link cover if needed, then create the event and edit it in the builder. After publishing, add guests and open a copied guest link in a private window to check the invitation.
 
 > PGlite allows one process at a time. Stop `npm run dev` before running `npm run db:migrate` / `db:seed`.
 

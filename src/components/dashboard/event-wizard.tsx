@@ -1,189 +1,453 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarHeart, Clock3, ImagePlus, LayoutTemplate, Loader2, MapPin, Plus, X, type LucideIcon } from "lucide-react";
 import { EVENT_TYPES, type EventType } from "@/features/templates/registry";
 import type { MarketTemplate } from "@/features/templates/queries";
 import { createEventAction } from "@/features/events/actions";
-import { Button, Field, Input, Badge } from "@/components/ui";
-import { ChanFlower, Lotus } from "@/components/invitation/ornaments";
-import { TemplateThumb } from "@/components/marketing/template-thumb";
+import { Button, Field, Input, Select, Textarea, buttonClass } from "@/components/ui";
+import { EventTemplatePicker } from "@/components/dashboard/event-template-picker";
 import { toKhmerDigits } from "@/i18n/format";
 import { cn } from "@/lib/utils";
 
-const STORAGE = "ei:wizard:v1"; // UI convenience only — the event itself is stored server-side on creation.
+const STORAGE = "ei:wizard:v1";
+const COVER_LIMIT = 8 * 1024 * 1024;
+const COVER_TYPES = "image/jpeg,image/png,image/webp,image/gif";
+const AGENDA_LIMIT = 30;
+const COUPLE_TYPES = new Set<EventType>(["wedding", "engagement", "anniversary"]);
 
-const TX = {
-  steps: [{ km: "ប្រភេទ", en: "Type" }, { km: "ព័ត៌មាន", en: "Details" }, { km: "គំរូ", en: "Design" }, { km: "ពិនិត្យ", en: "Review" }],
-  typeTitle: { km: "តើអ្នករៀបចំកម្មវិធីអ្វី?", en: "What are you celebrating?" },
-  infoTitle: { km: "ព័ត៌មានកម្មវិធី", en: "Event details" },
-  tplTitle: { km: "ជ្រើសរើសគំរូធៀប", en: "Choose a design" },
-  reviewTitle: { km: "ពិនិត្យ និងបង្កើត", en: "Review & create" },
-  title: { km: "ចំណងជើងកម្មវិធី (សម្រាប់អ្នកប៉ុណ្ណោះ)", en: "Event title (only you see this)" },
-  hostKm: { km: "ឈ្មោះម្ចាស់កម្មវិធី (ខ្មែរ)", en: "Host names (Khmer)" },
-  hostEn: { km: "ឈ្មោះម្ចាស់កម្មវិធី (អង់គ្លេស)", en: "Host names (English)" },
-  hostHint: { km: "ឧ. សុវណ្ណ & លក្ខិណា", en: "e.g. Sovann & Lakhena" },
-  date: { km: "កាលបរិច្ឆេទ", en: "Date" }, start: { km: "ម៉ោងចាប់ផ្ដើម", en: "Start time" }, end: { km: "ម៉ោងបញ្ចប់", en: "End time" },
-  venue: { km: "ឈ្មោះទីកន្លែង", en: "Venue name" }, address: { km: "អាសយដ្ឋាន", en: "Address" }, map: { km: "តំណ Google Maps (ស្រេចចិត្ត)", en: "Google Maps link (optional)" },
-  lunar: { km: "កាលបរិច្ឆេទច័ន្ទគតិ អាចបញ្ចូលដោយខ្លួនឯងនៅក្នុងកម្មវិធីកែធៀប", en: "You can add a verified lunar date yourself in the builder" },
-  next: { km: "បន្ទាប់", en: "Next" }, back: { km: "ថយក្រោយ", en: "Back" }, create: { km: "បង្កើត និងចាប់ផ្ដើមកែធៀប", en: "Create & open builder" },
-  noInvent: { km: "យើងមិនបំពេញឈ្មោះឪពុកម្ដាយ ឬព័ត៌មានផ្ទាល់ខ្លួនជំនួសអ្នកឡើយ — អ្នកបញ្ចូលវានៅក្នុងកម្មវិធីកែធៀប។", en: "We never fill in parents' names or personal details for you — you add them in the builder." },
-  required: { km: "សូមបំពេញព័ត៌មានដែលត្រូវការ", en: "Please fill in the required fields" },
-  saved: { km: "ព្រាងត្រូវបានរក្សាទុកក្នុងឧបករណ៍នេះ", en: "Progress saved on this device" },
-  premium: { km: "ពិសេស", en: "Premium" },
-  premiumNote: { km: "គំរូពិសេសអាចកែ និងមើលបានដោយឥតគិតថ្លៃ — ត្រូវការកញ្ចប់ពេលផ្សព្វផ្សាយ", en: "Premium designs are free to edit and preview — a plan is needed to publish" },
-  errors: { plan_events_limit: { km: "អ្នកបានដល់ចំនួនកម្មវិធីអតិបរមានៃកញ្ចប់របស់អ្នក", en: "You've reached your plan's event limit" } } as Record<string, { km: string; en: string }>,
+const COPY = {
+  events: { km: "កម្មវិធីទាំងអស់", en: "All events" },
+  heading: { km: "បង្កើតកម្មវិធីថ្មី", en: "Create an event" },
+  details: { km: "ព័ត៌មានកម្មវិធី", en: "Event details" },
+  type: { km: "ប្រភេទកម្មវិធី", en: "Event type" },
+  title: { km: "ឈ្មោះកម្មវិធី", en: "Event name" },
+  titleHint: { km: "ឧ. មង្គលការ សុវណ្ណ និង លក្ខិណា", en: "e.g. Sovann & Lakhena’s wedding" },
+  partnerOne: { km: "ឈ្មោះកូនកំលោះ", en: "Groom’s name" },
+  partnerTwo: { km: "ឈ្មោះកូនក្រមុំ", en: "Bride’s name" },
+  host: { km: "ឈ្មោះម្ចាស់កម្មវិធី (ខ្មែរ)", en: "Host name (Khmer)" },
+  hostEn: { km: "ឈ្មោះម្ចាស់កម្មវិធី (អង់គ្លេស)", en: "Host name (English)" },
+  combinedKm: { km: "ឈ្មោះរួម (ខ្មែរ)", en: "Combined names (Khmer)" },
+  combinedEn: { km: "ឈ្មោះរួម (អង់គ្លេស)", en: "Combined names (English)" },
+  translations: { km: "ឈ្មោះរួម ឬឈ្មោះជាភាសាផ្សេង", en: "Combined or translated names" },
+  date: { km: "កាលបរិច្ឆេទ", en: "Event date" },
+  start: { km: "ម៉ោងចាប់ផ្ដើម", en: "Start time" },
+  reception: { km: "ម៉ោងពិសាភោជនាហារ", en: "Reception time" },
+  end: { km: "ម៉ោងបញ្ចប់", en: "End time" },
+  venueSection: { km: "ទីតាំង និងសារអញ្ជើញ", en: "Venue and invitation message" },
+  venue: { km: "ឈ្មោះទីកន្លែង", en: "Venue name" },
+  address: { km: "អាសយដ្ឋាន", en: "Address" },
+  map: { km: "តំណ Google Maps", en: "Google Maps link" },
+  message: { km: "សារអញ្ជើញ", en: "Invitation message" },
+  messageHint: { km: "បង្ហាញនៅលើធៀបរបស់ភ្ញៀវ", en: "Shown on the guest invitation" },
+  agenda: { km: "របៀបវារៈកម្មវិធី", en: "Event agenda" },
+  agendaIntro: { km: "បន្ថែមសកម្មភាពដែលអ្នកចង់បង្ហាញលើធៀប។", en: "Add activities to show on the invitation." },
+  agendaTime: { km: "ម៉ោង", en: "Time" },
+  agendaTitle: { km: "សកម្មភាព", en: "Activity" },
+  agendaNotes: { km: "កំណត់ចំណាំ", en: "Notes" },
+  add: { km: "បន្ថែមសកម្មភាព", en: "Add activity" },
+  removeActivity: { km: "លុបសកម្មភាព", en: "Remove activity" },
+  cover: { km: "រូបភាពសម្រាប់តំណធៀប", en: "Link preview cover" },
+  coverHelp: { km: "បង្ហាញនៅពេលចែករំលែកតំណធៀប។", en: "Appears when you share the invitation link." },
+  coverFormats: { km: "JPG, PNG, WebP ឬ GIF រហូតដល់ ៨ MB", en: "JPG, PNG, WebP, or GIF up to 8 MB" },
+  coverAlt: { km: "រូបភាពតំណធៀបដែលបានជ្រើសរើស", en: "Selected link preview cover" },
+  upload: { km: "ជ្រើសរើសរូបភាព", en: "Choose an image" },
+  replace: { km: "ប្ដូររូបភាព", en: "Replace image" },
+  removeImage: { km: "ដករូបភាព", en: "Remove image" },
+  coverSize: { km: "រូបភាពត្រូវមានទំហំមិនលើស ៨ MB។", en: "Choose an image no larger than 8 MB." },
+  coverType: { km: "សូមជ្រើសរើសរូបភាព JPG, PNG, WebP ឬ GIF។", en: "Choose a JPG, PNG, WebP, or GIF image." },
+  design: { km: "គំរូធៀប", en: "Invitation design" },
+  optional: { km: "ស្រេចចិត្ត", en: "Optional" },
+  required: { km: "ត្រូវបំពេញ", en: "Required" },
+  cancel: { km: "បោះបង់", en: "Cancel" },
+  create: { km: "បង្កើត និងចាប់ផ្ដើមកែធៀប", en: "Create & open builder" },
+  creating: { km: "កំពុងបង្កើតកម្មវិធី…", en: "Creating event…" },
+  saved: { km: "ព្រាងរក្សាទុកនៅលើឧបករណ៍នេះ", en: "Draft saved on this device" },
+  failure: { km: "មិនអាចបង្កើតកម្មវិធីបានទេ។ សូមពិនិត្យព័ត៌មាន ហើយព្យាយាមម្តងទៀត។", en: "Couldn’t create the event. Check the details and try again." },
+  errors: {
+    plan_events_limit: { km: "អ្នកបានដល់ចំនួនកម្មវិធីអតិបរមានៃកញ្ចប់របស់អ្នក។", en: "You’ve reached your plan’s event limit." },
+    host: { km: "សូមបញ្ចូលឈ្មោះម្ចាស់កម្មវិធី។", en: "Enter the host names." },
+    invalid_date: { km: "សូមពិនិត្យកាលបរិច្ឆេទ និងម៉ោងកម្មវិធី។", en: "Check the event date and times." },
+    cover_too_large: { km: "រូបភាពត្រូវមានទំហំមិនលើស ៨ MB។", en: "Choose an image no larger than 8 MB." },
+    invalid_cover: { km: "មិនអាចអានរូបភាពបានទេ។ សូមជ្រើសរើសរូបភាពផ្សេង។", en: "This image couldn’t be read. Choose a different image." },
+    template_unavailable: { km: "គំរូនេះមិនអាចប្រើបានទេ។ សូមជ្រើសរើសគំរូផ្សេង។", en: "This design is unavailable. Choose another design." },
+  } as Record<string, { km: string; en: string }>,
 };
 
-type State = { step: number; type: EventType | ""; title: string; hostKm: string; hostEn: string; date: string; startTime: string; endTime: string; venueName: string; venueAddress: string; mapUrl: string; template: string };
-const EMPTY: State = { step: 0, type: "", title: "", hostKm: "", hostEn: "", date: "", startTime: "17:00", endTime: "", venueName: "", venueAddress: "", mapUrl: "", template: "" };
+type AgendaEntry = { id: string; time: string; title: string; notes: string };
+type Draft = {
+  type: EventType;
+  title: string;
+  hostKm: string;
+  hostEn: string;
+  partnerOne: string;
+  partnerTwo: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  venueName: string;
+  venueAddress: string;
+  mapUrl: string;
+  template: string;
+  message: string;
+  agenda: AgendaEntry[];
+  legacyHosts: boolean;
+  entryTemplate: string;
+};
 
-export function EventWizard({ locale, templates, initialTemplate }: { locale: "km" | "en"; templates: MarketTemplate[]; initialTemplate?: string }) {
-  const L = (x: { km: string; en: string }) => x[locale];
+const EMPTY: Draft = {
+  type: "wedding", title: "", hostKm: "", hostEn: "", partnerOne: "", partnerTwo: "",
+  date: "", startTime: "17:00", endTime: "", venueName: "", venueAddress: "", mapUrl: "",
+  template: "", message: "", agenda: [], legacyHosts: false, entryTemplate: "",
+};
+
+function readDraft(): Draft {
+  try {
+    const stored = JSON.parse(localStorage.getItem(STORAGE) ?? "null") as (Partial<Draft> & { step?: number }) | null;
+    if (!stored) return EMPTY;
+    const type = EVENT_TYPES.find((type) => type.value === stored.type)?.value ?? EMPTY.type;
+    const agenda = Array.isArray(stored.agenda) ? stored.agenda.slice(0, AGENDA_LIMIT)
+      .filter((item) => item && [item.id, item.time, item.title, item.notes].every((value) => typeof value === "string")) : [];
+    const { step, ...draft } = stored;
+    return {
+      ...EMPTY, ...draft, type, agenda,
+      legacyHosts: draft.legacyHosts || (step !== undefined && Boolean(draft.hostKm || draft.hostEn)),
+    };
+  } catch { /* Storage can be unavailable. */ }
+  return EMPTY;
+}
+
+function preferredTemplate(templates: MarketTemplate[], type: EventType) {
+  const matching = templates.filter((template) => template.category === type);
+  return (matching.find((template) => template.tier === "free") ?? matching[0])?.slug ?? "";
+}
+
+function FormSection({ id, icon: Icon, title, meta, children }: {
+  id: string; icon: LucideIcon; title: string; meta?: string; children: ReactNode;
+}) {
+  return (
+    <section aria-labelledby={id} className="min-w-0 rounded-2xl border border-line bg-white p-4 shadow-soft sm:p-6">
+      <div className="mb-5 flex items-center gap-3">
+        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-gold-soft text-gold-2">
+          <Icon aria-hidden className="size-[18px]" />
+        </span>
+        <h2 id={id} className="min-w-0 flex-1 font-semibold">{title}</h2>
+        {meta ? <span className="text-xs text-muted">{meta}</span> : null}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+export function EventWizard({ locale, templates, initialTemplate }: {
+  locale: "km" | "en"; templates: MarketTemplate[]; initialTemplate?: string;
+}) {
+  const L = (text: { km: string; en: string }) => text[locale];
   const router = useRouter();
-  const [s, setS] = useState<State>(EMPTY);
-  const [loaded, setLoaded] = useState(false);
+  const [draft, setDraft] = useState<Draft>(EMPTY);
+  const [ready, setReady] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-  const [pending, start] = useTransition();
+  const [cover, setCover] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState("");
+  const [coverError, setCoverError] = useState("");
+  const inputCover = useRef<HTMLInputElement>(null);
+  const chooseCover = useRef<HTMLButtonElement>(null);
+  const addActivity = useRef<HTMLButtonElement>(null);
+  const activityToFocus = useRef<number | null>(null);
+  const submitError = useRef<HTMLParagraphElement>(null);
+  const submitting = useRef(false);
+  const completed = useRef(false);
+  const lastInitial = useRef<string | undefined>(undefined);
+  const initialized = useRef(false);
 
   useEffect(() => {
-    let init = EMPTY;
-    try { const raw = localStorage.getItem(STORAGE); if (raw) init = { ...EMPTY, ...JSON.parse(raw) }; } catch { /* storage unavailable */ }
-    const pre = templates.find((t) => t.slug === initialTemplate);
-    if (pre) init = { ...init, template: pre.slug, type: init.type || pre.category, step: init.step || 0 };
-    setS(init);
-    setLoaded(true);
-  }, [initialTemplate, templates]);
-  useEffect(() => { if (loaded) try { localStorage.setItem(STORAGE, JSON.stringify(s)); } catch { /* ignore */ } }, [s, loaded]);
-
-  const up = (p: Partial<State>) => setS((x) => ({ ...x, ...p }));
-  const list = useMemo(() => {
-    const same = templates.filter((t) => t.category === s.type);
-    return [...same, ...templates.filter((t) => t.category !== s.type)];
-  }, [templates, s.type]);
-
-  const infoValid = !!(s.title.trim() && (s.hostKm.trim() || s.hostEn.trim()) && s.date && s.startTime);
-  const canNext = [!!s.type, infoValid, !!s.template, true][s.step];
-
-  function submit() {
-    setError("");
-    start(async () => {
-      const r = await createEventAction({ type: s.type as string, title: s.title, hostKm: s.hostKm, hostEn: s.hostEn, date: s.date, startTime: s.startTime, endTime: s.endTime, timezone: "Asia/Phnom_Penh", venueName: s.venueName, venueAddress: s.venueAddress, mapUrl: s.mapUrl, template: s.template });
-      if (r.ok) {
-        try { localStorage.removeItem(STORAGE); } catch { /* ignore */ }
-        router.push(`/dashboard/events/${(r.data as { id: string }).id}/builder`);
-      } else setError(TX.errors[r.error] ? L(TX.errors[r.error]) : r.error);
+    if (initialized.current && lastInitial.current === initialTemplate) return;
+    const stored = readDraft();
+    const linked = initialTemplate !== stored.entryTemplate ? templates.find((t) => t.slug === initialTemplate) : undefined;
+    const type = linked?.category ?? stored.type;
+    initialized.current = true;
+    lastInitial.current = initialTemplate;
+    setDraft({
+      ...stored, type, entryTemplate: initialTemplate ?? "",
+      template: linked?.slug ?? (templates.some((t) => t.slug === stored.template && t.category === type)
+        ? stored.template : preferredTemplate(templates, type)),
     });
+    setReady(true);
+  }, [initialTemplate, templates]);
+
+  useEffect(() => {
+    if (!ready || completed.current) return;
+    try {
+      localStorage.setItem(STORAGE, JSON.stringify(draft));
+      setSaved(Boolean(draft.title.trim()));
+    } catch { setSaved(false); }
+  }, [draft, ready]);
+
+  useEffect(() => {
+    if (!cover) {
+      setCoverPreview("");
+      return;
+    }
+    const url = URL.createObjectURL(cover);
+    setCoverPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [cover]);
+
+  useEffect(() => {
+    if (error) submitError.current?.focus();
+  }, [error]);
+
+  useEffect(() => {
+    if (activityToFocus.current === null) return;
+    document.getElementById(`agenda-time-${activityToFocus.current}`)?.focus();
+    activityToFocus.current = null;
+  }, [draft.agenda]);
+
+  const update = (next: Partial<Draft>) => setDraft((current) => ({ ...current, ...next }));
+  const couple = COUPLE_TYPES.has(draft.type);
+  const retainedHosts = draft.legacyHosts && Boolean(draft.hostKm.trim() || draft.hostEn.trim());
+  const requirePair = !retainedHosts || Boolean(draft.partnerOne.trim() || draft.partnerTwo.trim());
+  const matchingTemplates = templates.filter((t) => t.category === draft.type);
+  const selected = matchingTemplates.find((t) => t.slug === draft.template);
+  const category = EVENT_TYPES.find((type) => type.value === draft.type);
+
+  function changeType(type: EventType) {
+    update({ type, template: preferredTemplate(templates, type) });
   }
 
-  const tpl = templates.find((t) => t.slug === s.template);
+  function changeCover(file: File | undefined) {
+    if (inputCover.current) inputCover.current.value = "";
+    if (!file) return;
+    if (file.size > COVER_LIMIT) return setCoverError(L(COPY.coverSize));
+    if (!COVER_TYPES.split(",").includes(file.type) && (file.type || !/\.(jpe?g|png|webp|gif)$/i.test(file.name))) {
+      return setCoverError(L(COPY.coverType));
+    }
+    setCoverError("");
+    setCover(file);
+  }
+
+  function updateActivity(id: string, next: Partial<AgendaEntry>) {
+    setDraft((current) => ({
+      ...current,
+      agenda: current.agenda.map((item) => item.id === id ? { ...item, ...next } : item),
+    }));
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selected || submitting.current) return;
+    submitting.current = true;
+    setPending(true);
+    setError("");
+    const form = cover ? new FormData() : undefined;
+    if (cover) form?.set("cover", cover);
+    try {
+      const result = await createEventAction({
+        type: draft.type, title: draft.title, hostKm: draft.hostKm, hostEn: draft.hostEn,
+        partnerOne: couple ? draft.partnerOne : "", partnerTwo: couple ? draft.partnerTwo : "",
+        date: draft.date, startTime: draft.startTime, endTime: draft.endTime, timezone: "Asia/Phnom_Penh",
+        venueName: draft.venueName, venueAddress: draft.venueAddress, mapUrl: draft.mapUrl, template: draft.template,
+        message: draft.message, locale,
+        agenda: draft.agenda.filter(({ time, title, notes }) => time || title.trim() || notes.trim())
+          .map(({ time, title, notes }) => ({ time, title, notes })),
+      }, form);
+      if (result.ok) {
+        completed.current = true;
+        try { localStorage.removeItem(STORAGE); } catch { /* Storage can be unavailable. */ }
+        router.push(`/dashboard/events/${(result.data as { id: string }).id}/builder`);
+        return;
+      }
+      setError(L(COPY.errors[result.error] ?? COPY.failure));
+    } catch {
+      setError(L(COPY.failure));
+    } finally {
+      if (!completed.current) {
+        submitting.current = false;
+        setPending(false);
+      }
+    }
+  }
 
   return (
-    <div className="mx-auto max-w-4xl">
-      <ol className="mb-8 flex items-center gap-2 overflow-x-auto" aria-label="Progress">
-        {TX.steps.map((st, i) => (
-          <li key={i} className="flex shrink-0 items-center gap-2">
-            <button disabled={i > s.step} onClick={() => up({ step: i })} className={cn("flex items-center gap-2 rounded-full py-1.5 pl-1.5 pr-3 text-sm transition-colors", i === s.step ? "bg-ink text-white" : i < s.step ? "bg-white text-ink" : "text-muted")} aria-current={i === s.step ? "step" : undefined}>
-              <span className={cn("flex h-6 w-6 items-center justify-center rounded-full text-xs", i === s.step ? "bg-white/15" : i < s.step ? "bg-success text-white" : "border border-line-2")}>
-                {i < s.step ? <Check className="h-3.5 w-3.5" /> : locale === "km" ? toKhmerDigits(i + 1) : i + 1}
-              </span>
-              {L(st)}
-            </button>
-            {i < 3 ? <span className="h-px w-6 bg-line-2" /> : null}
-          </li>
-        ))}
-      </ol>
+    <div className="mx-auto max-w-[1080px]">
+      <header className="mb-6 border-b border-line-2 pb-5 sm:mb-7">
+        <Link href="/dashboard/events" className="inline-flex items-center gap-2 rounded text-sm font-medium text-ink-2 hover:text-ink">
+          <ArrowLeft aria-hidden className="size-4" />
+          {L(COPY.events)}
+        </Link>
+        <h1 className={cn("mt-3 text-3xl font-semibold sm:text-4xl", locale === "en" && "font-cormorant text-[2.7rem] leading-none sm:text-5xl")}>{L(COPY.heading)}</h1>
+      </header>
 
-      <div className="rounded-3xl border border-line bg-white p-5 shadow-soft sm:p-8">
-        {s.step === 0 ? (
-          <>
-            <h1 className="text-2xl font-semibold">{L(TX.typeTitle)}</h1>
-            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {EVENT_TYPES.map((e) => (
-                <button key={e.value} onClick={() => up({ type: e.value, step: 1 })} aria-pressed={s.type === e.value}
-                  className={cn("group flex flex-col items-start gap-3 rounded-2xl border p-4 text-left transition-all", s.type === e.value ? "border-gold bg-gold-soft/60 ring-4 ring-gold/10" : "border-line hover:border-line-2")}>
-                  <span className="text-gold">{e.value === "funeral" ? <Lotus size={26} /> : <ChanFlower size={26} />}</span>
-                  <span><span className="block font-medium">{e.label.km}</span><span className="text-xs text-muted">{e.label.en}</span></span>
-                </button>
-              ))}
-            </div>
-          </>
-        ) : null}
+      <form id="event-create-form" onSubmit={submit} aria-busy={pending}>
+        <fieldset disabled={!ready || pending} className="min-w-0">
+          <div className="grid items-start gap-4 sm:gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(17rem,0.55fr)]">
+            <div className="grid min-w-0 gap-4 sm:gap-5">
+              <FormSection id="event-details" icon={CalendarHeart} title={L(COPY.details)}>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label={L(COPY.title)} hint={L(COPY.required)} htmlFor="title">
+                    <Input id="title" required maxLength={160} value={draft.title} placeholder={L(COPY.titleHint)} onChange={(e) => update({ title: e.target.value })} />
+                  </Field>
+                  <Field label={L(COPY.type)} htmlFor="event-type">
+                    <Select id="event-type" className="appearance-auto bg-none" value={draft.type} onChange={(e) => changeType(e.target.value as EventType)}>
+                      {EVENT_TYPES.map((type) => <option key={type.value} value={type.value}>{L(type.label)}</option>)}
+                    </Select>
+                  </Field>
+                  {couple ? (
+                    <>
+                      <Field label={L(COPY.partnerOne)} hint={requirePair ? L(COPY.required) : undefined} htmlFor="partner-one">
+                        <Input id="partner-one" required={requirePair} maxLength={160} value={draft.partnerOne} onChange={(e) => update({ partnerOne: e.target.value })} />
+                      </Field>
+                      <Field label={L(COPY.partnerTwo)} hint={requirePair ? L(COPY.required) : undefined} htmlFor="partner-two">
+                        <Input id="partner-two" required={requirePair} maxLength={160} value={draft.partnerTwo} onChange={(e) => update({ partnerTwo: e.target.value })} />
+                      </Field>
+                      <details open={retainedHosts || undefined} className="min-w-0 rounded-xl border border-line bg-paper px-3 py-2 sm:col-span-2">
+                        <summary className="cursor-pointer text-sm text-ink-2">{L(COPY.translations)}</summary>
+                        <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                          <Field label={L(COPY.combinedKm)} htmlFor="hk">
+                            <Input id="hk" lang="km" value={draft.hostKm} maxLength={160} onChange={(e) => update({ hostKm: e.target.value })} />
+                          </Field>
+                          <Field label={L(COPY.combinedEn)} htmlFor="he">
+                            <Input id="he" lang="en" value={draft.hostEn} maxLength={160} onChange={(e) => update({ hostEn: e.target.value })} />
+                          </Field>
+                        </div>
+                      </details>
+                    </>
+                  ) : (
+                    <>
+                      <Field label={L(COPY.host)} htmlFor="hk">
+                        <Input id="hk" lang="km" required={!draft.hostEn.trim()} value={draft.hostKm} maxLength={160} onChange={(e) => update({ hostKm: e.target.value })} />
+                      </Field>
+                      <Field label={L(COPY.hostEn)} htmlFor="he">
+                        <Input id="he" lang="en" required={!draft.hostKm.trim()} value={draft.hostEn} maxLength={160} onChange={(e) => update({ hostEn: e.target.value })} />
+                      </Field>
+                    </>
+                  )}
+                </div>
+                <div className="mt-5 grid gap-4 border-t border-line pt-5 sm:grid-cols-3">
+                  <Field label={L(COPY.date)} hint={L(COPY.required)} htmlFor="date">
+                    <Input id="date" type="date" required value={draft.date} onChange={(e) => update({ date: e.target.value })} />
+                  </Field>
+                  <Field label={L(couple ? COPY.reception : COPY.start)} hint={L(COPY.required)} htmlFor="st">
+                    <Input id="st" type="time" required value={draft.startTime} onChange={(e) => update({ startTime: e.target.value })} />
+                  </Field>
+                  <Field label={L(COPY.end)} hint={L(COPY.optional)} htmlFor="et">
+                    <Input id="et" type="time" value={draft.endTime} onChange={(e) => update({ endTime: e.target.value })} />
+                  </Field>
+                </div>
+                <p className="mt-2 text-xs text-muted">Asia/Phnom_Penh</p>
+              </FormSection>
 
-        {s.step === 1 ? (
-          <>
-            <h1 className="text-2xl font-semibold">{L(TX.infoTitle)}</h1>
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              <Field label={`${L(TX.title)} *`} className="sm:col-span-2" htmlFor="title"><Input id="title" value={s.title} maxLength={160} onChange={(e) => up({ title: e.target.value })} /></Field>
-              <Field label={`${L(TX.hostKm)} *`} hint={L(TX.hostHint)} htmlFor="hk"><Input id="hk" lang="km" value={s.hostKm} maxLength={160} onChange={(e) => up({ hostKm: e.target.value })} /></Field>
-              <Field label={L(TX.hostEn)} htmlFor="he"><Input id="he" value={s.hostEn} maxLength={160} onChange={(e) => up({ hostEn: e.target.value })} /></Field>
-              <Field label={`${L(TX.date)} *`} htmlFor="date"><Input id="date" type="date" value={s.date} onChange={(e) => up({ date: e.target.value })} /></Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label={`${L(TX.start)} *`} htmlFor="st"><Input id="st" type="time" value={s.startTime} onChange={(e) => up({ startTime: e.target.value })} /></Field>
-                <Field label={L(TX.end)} htmlFor="et"><Input id="et" type="time" value={s.endTime} onChange={(e) => up({ endTime: e.target.value })} /></Field>
-              </div>
-              <Field label={L(TX.venue)} htmlFor="vn"><Input id="vn" value={s.venueName} maxLength={200} onChange={(e) => up({ venueName: e.target.value })} /></Field>
-              <Field label={L(TX.address)} htmlFor="va"><Input id="va" value={s.venueAddress} maxLength={400} onChange={(e) => up({ venueAddress: e.target.value })} /></Field>
-              <Field label={L(TX.map)} className="sm:col-span-2" htmlFor="mu"><Input id="mu" type="url" placeholder="https://maps.app.goo.gl/…" value={s.mapUrl} onChange={(e) => up({ mapUrl: e.target.value })} /></Field>
-            </div>
-            <p className="mt-4 text-xs text-muted">Asia/Phnom_Penh · {L(TX.lunar)}</p>
-          </>
-        ) : null}
+              <FormSection id="event-venue" icon={MapPin} title={L(COPY.venueSection)} meta={L(COPY.optional)}>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label={L(COPY.venue)} htmlFor="vn">
+                    <Input id="vn" value={draft.venueName} maxLength={200} onChange={(e) => update({ venueName: e.target.value })} />
+                  </Field>
+                  <Field label={L(COPY.address)} htmlFor="va">
+                    <Input id="va" value={draft.venueAddress} maxLength={400} onChange={(e) => update({ venueAddress: e.target.value })} />
+                  </Field>
+                  <Field label={L(COPY.map)} htmlFor="mu" className="sm:col-span-2">
+                    <Input id="mu" type="url" pattern="https://.+" placeholder="https://maps.google.com/…" value={draft.mapUrl} maxLength={500} onChange={(e) => update({ mapUrl: e.target.value })} />
+                  </Field>
+                  <Field label={L(COPY.message)} htmlFor="event-message" className="sm:col-span-2">
+                    <Textarea id="event-message" aria-describedby="event-message-hint" rows={3} maxLength={2000} value={draft.message} onChange={(e) => update({ message: e.target.value })} />
+                    <p id="event-message-hint" className="mt-1 text-xs text-ink-2">{L(COPY.messageHint)}</p>
+                  </Field>
+                </div>
+              </FormSection>
 
-        {s.step === 2 ? (
-          <>
-            <h1 className="text-2xl font-semibold">{L(TX.tplTitle)}</h1>
-            <p className="mt-1 text-sm text-muted">{L(TX.premiumNote)}</p>
-            <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              {list.map((t) => (
-                <button key={t.slug} onClick={() => up({ template: t.slug })} aria-pressed={s.template === t.slug} className="group text-left">
-                  <div className={cn("relative overflow-hidden rounded-2xl border-2 p-1 transition-all", s.template === t.slug ? "border-gold shadow-lift" : "border-transparent hover:border-line-2")}>
-                    <div className="overflow-hidden rounded-xl"><TemplateThumb slug={t.slug} locale={locale} width={176} className="!w-full" /></div>
-                    {s.template === t.slug ? <span className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-gold text-white"><Check className="h-4 w-4" /></span> : null}
-                    {t.tier === "premium" ? <Badge tone="dark" className="absolute left-2 top-2">★ {L(TX.premium)}</Badge> : null}
+              <FormSection id="event-agenda" icon={Clock3} title={L(COPY.agenda)} meta={L(COPY.optional)}>
+                {draft.agenda.length === 0 ? <p className="mb-4 text-sm text-muted">{L(COPY.agendaIntro)}</p> : null}
+                {draft.agenda.length > 0 ? (
+                  <div className="mb-4 grid gap-3">
+                    {draft.agenda.map((item, index) => {
+                      const number = index + 1;
+                      const displayNumber = locale === "km" ? toKhmerDigits(number) : number;
+                      const removeLabel = `${L(COPY.removeActivity)} ${displayNumber}`;
+                      return (
+                        <div key={item.id} role="group" aria-label={`${L(COPY.agendaTitle)} ${displayNumber}`} className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-3 rounded-xl border border-line bg-paper p-3">
+                          <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(7rem,0.7fr)_minmax(0,1fr)]">
+                            <Field label={L(COPY.agendaTime)} htmlFor={`agenda-time-${number}`}>
+                              <Input id={`agenda-time-${number}`} type="time" value={item.time} required={Boolean(item.title.trim() || item.notes.trim())} onChange={(e) => updateActivity(item.id, { time: e.target.value })} />
+                            </Field>
+                            <Field label={L(COPY.agendaTitle)} htmlFor={`agenda-title-${number}`}>
+                              <Input id={`agenda-title-${number}`} value={item.title} required={Boolean(item.time || item.notes.trim())} maxLength={160} onChange={(e) => updateActivity(item.id, { title: e.target.value })} />
+                            </Field>
+                          </div>
+                          <Button type="button" variant="ghost" className="mt-6 size-10 px-0 text-muted hover:text-danger" aria-label={removeLabel} title={removeLabel}
+                            onClick={() => {
+                              if (draft.agenda.length === 1) addActivity.current?.focus();
+                              else activityToFocus.current = Math.min(number, draft.agenda.length - 1);
+                              update({ agenda: draft.agenda.filter((row) => row.id !== item.id) });
+                            }}><X aria-hidden className="size-4" /></Button>
+                          <Field label={L(COPY.agendaNotes)} htmlFor={`agenda-notes-${number}`} className="col-span-2">
+                            <Input id={`agenda-notes-${number}`} value={item.notes} maxLength={500} onChange={(e) => updateActivity(item.id, { notes: e.target.value })} />
+                          </Field>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <p className="mt-2 text-sm font-medium">{L(t.name)}</p>
-                </button>
-              ))}
+                ) : null}
+                <Button ref={addActivity} type="button" variant="outline" disabled={draft.agenda.length >= AGENDA_LIMIT}
+                  onClick={() => {
+                    activityToFocus.current = draft.agenda.length + 1;
+                    update({ agenda: [...draft.agenda, { id: crypto.randomUUID(), time: "", title: "", notes: "" }] });
+                  }}>
+                  <Plus aria-hidden className="size-4" />
+                  {L(COPY.add)}
+                </Button>
+              </FormSection>
             </div>
-          </>
-        ) : null}
 
-        {s.step === 3 ? (
-          <div className="grid gap-8 sm:grid-cols-[200px_1fr]">
-            {tpl ? <div className="overflow-hidden rounded-2xl border border-line"><TemplateThumb slug={tpl.slug} locale={locale} width={200} /></div> : null}
-            <div>
-              <h1 className="text-2xl font-semibold">{L(TX.reviewTitle)}</h1>
-              <dl className="mt-5 divide-y divide-line text-sm">
-                {[
-                  [L(TX.steps[0]), L(EVENT_TYPES.find((e) => e.value === s.type)?.label ?? { km: "", en: "" })],
-                  [L(TX.title), s.title],
-                  [L(TX.hostKm), [s.hostKm, s.hostEn].filter(Boolean).join(" · ")],
-                  [L(TX.date), `${s.date} · ${s.startTime}${s.endTime ? `–${s.endTime}` : ""}`],
-                  [L(TX.venue), [s.venueName, s.venueAddress].filter(Boolean).join(", ") || "—"],
-                  [L(TX.steps[2]), tpl ? L(tpl.name) : "—"],
-                ].map(([k, v]) => (
-                  <div key={k} className="grid grid-cols-[140px_1fr] gap-3 py-2.5"><dt className="text-muted">{k}</dt><dd className="font-medium">{v}</dd></div>
-                ))}
-              </dl>
-              <p className="mt-5 rounded-xl bg-gold-soft/70 px-4 py-3 text-xs leading-6 text-gold-2">{L(TX.noInvent)}</p>
+            <div className="grid min-w-0 gap-4 sm:gap-5 md:grid-cols-2 xl:grid-cols-1">
+              <FormSection id="event-cover-heading" icon={ImagePlus} title={L(COPY.cover)} meta={L(COPY.optional)}>
+                <div className="relative isolate grid aspect-[1.91] place-items-center overflow-hidden rounded-xl border border-dashed border-line-2 bg-paper">
+                  {coverPreview ? (
+                    // Blob URLs are local previews and do not need image optimization.
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={coverPreview} alt={L(COPY.coverAlt)} className="absolute inset-0 size-full object-cover" />
+                  ) : <ImagePlus aria-hidden className="size-8 text-gold-2" />}
+                </div>
+                <div id="event-cover-hint" className="mt-3 space-y-1 text-sm text-ink-2">
+                  <p>{L(COPY.coverHelp)}</p>
+                  <p className="text-xs">{L(COPY.coverFormats)}</p>
+                </div>
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <input id="event-cover" ref={inputCover} type="file" accept={COVER_TYPES} hidden onChange={(e) => changeCover(e.currentTarget.files?.[0])} />
+                  <Button ref={chooseCover} type="button" variant="outline" aria-describedby="event-cover-hint" onClick={() => inputCover.current?.click()}>
+                    {L(cover ? COPY.replace : COPY.upload)}
+                  </Button>
+                  {cover ? <Button type="button" variant="ghost" onClick={() => {
+                    setCover(null);
+                    setCoverError("");
+                    chooseCover.current?.focus();
+                  }}>{L(COPY.removeImage)}</Button> : null}
+                </div>
+                {coverError ? <p role="alert" className="mt-2 text-sm text-danger">{coverError}</p> : null}
+              </FormSection>
+
+              <FormSection id="event-design" icon={LayoutTemplate} title={L(COPY.design)}>
+                <EventTemplatePicker locale={locale} category={category ? L(category.label) : ""} templates={matchingTemplates}
+                  value={draft.template} onChange={(template) => update({ template })} />
+              </FormSection>
             </div>
           </div>
-        ) : null}
 
-        {error ? <p role="alert" className="mt-5 rounded-xl bg-danger/8 px-4 py-2.5 text-sm text-danger">{error}</p> : null}
-
-        <div className="mt-8 flex items-center justify-between border-t border-line pt-5">
-          <Button variant="ghost" onClick={() => up({ step: Math.max(0, s.step - 1) })} disabled={s.step === 0}><ArrowLeft className="h-4 w-4" />{L(TX.back)}</Button>
-          <span className="hidden text-xs text-muted sm:block">{loaded ? L(TX.saved) : ""}</span>
-          {s.step < 3 ? (
-            <Button onClick={() => (canNext ? up({ step: s.step + 1 }) : setError(L(TX.required)))} disabled={!canNext}>{L(TX.next)}<ArrowRight className="h-4 w-4" /></Button>
-          ) : (
-            <Button variant="gold" onClick={submit} disabled={pending}>{pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{L(TX.create)}</Button>
-          )}
-        </div>
-      </div>
+          {error ? <p ref={submitError} tabIndex={-1} role="alert" className="mt-5 rounded-xl border border-danger/20 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p> : null}
+          <div className="mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-line-2 pt-5">
+            {saved ? <span className="mr-auto w-full text-xs text-muted sm:w-auto">{L(COPY.saved)}</span> : null}
+            <Link href="/dashboard/events" className={buttonClass("ghost")}>{L(COPY.cancel)}</Link>
+            <Button disabled={!selected} type="submit" className="min-w-0">
+              {pending ? <Loader2 aria-hidden className="size-4 animate-spin" /> : null}
+              {L(pending ? COPY.creating : COPY.create)}
+              {!pending ? <ArrowRight aria-hidden className="size-4" /> : null}
+            </Button>
+          </div>
+        </fieldset>
+      </form>
     </div>
   );
 }

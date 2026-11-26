@@ -1,8 +1,23 @@
 import "server-only";
+import { eq } from "drizzle-orm";
+import { cache } from "react";
 import { db, schema } from "@/lib/db";
-import { TEMPLATES, type TemplateDef } from "./registry";
+import { getTemplate, TEMPLATES, type TemplateDef } from "./registry";
 
 export type MarketTemplate = Pick<TemplateDef, "slug" | "name" | "description" | "category" | "family" | "style" | "color" | "tier"> & { featured: boolean; popularity: number; createdAt: string };
+
+export async function getTemplatePolicy(template: TemplateDef) {
+  const [row] = await db.select({ listed: schema.templates.isPublished, tier: schema.templates.tier })
+    .from(schema.templates).where(eq(schema.templates.slug, template.slug));
+  return { listed: row?.listed ?? true, tier: row ? (row.tier === "premium" ? "premium" : "free") : template.tier };
+}
+
+export const getListedTemplate = cache(async (slug: string) => {
+  const template = getTemplate(slug);
+  if (!template) return;
+  const { listed, tier } = await getTemplatePolicy(template);
+  if (listed) return { ...template, tier };
+});
 
 /** Published templates: definitions come from the versioned registry, flags (publish/featured/tier/popularity) from the DB. */
 export async function listMarketTemplates(): Promise<MarketTemplate[]> {

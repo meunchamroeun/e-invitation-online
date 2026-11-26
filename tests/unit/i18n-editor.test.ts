@@ -3,7 +3,7 @@ import { countdownParts, formatDate, formatTime, toKhmerDigits, zonedToUtc } fro
 import { dictionaries } from "@/i18n/dictionaries";
 import { historyReducer, initHistory } from "@/components/builder/history";
 import { InvitationDocSchema, blankSection, SECTION_TYPES } from "@/features/invitations/doc";
-import { TEMPLATES, sampleDoc, starterDoc } from "@/features/templates/registry";
+import { EVENT_TYPES, TEMPLATES, sampleDoc, starterDoc } from "@/features/templates/registry";
 
 describe("localization", () => {
   it("Khmer digits", () => expect(toKhmerDigits("2027-02-14 17:00")).toBe("២០២៧-០២-១៤ ១៧:០០"));
@@ -93,5 +93,9 @@ describe("invitation documents & templates", () => {
     expect(TEMPLATES.length).toBeGreaterThanOrEqual(17);
     expect(new Set(TEMPLATES.map((t) => t.family)).size).toBeGreaterThanOrEqual(12);
     expect(new Set(TEMPLATES.map((t) => t.slug)).size).toBe(TEMPLATES.length);
+  });
+  it("has a free design for every event type", () => {
+    const freeCategories = new Set(TEMPLATES.filter((template) => template.tier === "free").map((template) => template.category));
+    for (const type of EVENT_TYPES) expect(freeCategories.has(type.value)).toBe(true);
   });
 });

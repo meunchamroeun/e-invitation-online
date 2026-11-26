@@ -2,6 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import sharp from "sharp";
 
 const uid = Date.now().toString(36);
 
@@ -14,30 +15,77 @@ async function register(page: Page, name: string, email: string) {
   await page.waitForURL("**/dashboard");
 }
 
+test("hosts can browse matching designs, preview them, and create a graduation invitation", async ({ page, context, baseURL }) => {
+  await context.addCookies([{ name: "ei_locale", value: "en", url: baseURL! }]);
+  await register(page, "Rathana", `graduation-${uid}@example.com`);
+  await page.goto("/dashboard/events/new");
+  const browse = page.getByRole("button", { name: "Browse designs" });
+  const gallery = page.getByRole("dialog", { name: "Choose an invitation design" });
+  await browse.click();
+  await expect(gallery.getByRole("button", { name: "Use design: Ivory & Champagne" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(gallery).toBeHidden();
+  await expect(browse).toBeFocused();
+
+  await page.locator("#event-type").selectOption("custom");
+  await expect(page.locator("#event-template")).toHaveValue("garden-gathering");
+  await page.locator("#event-type").selectOption("graduation");
+  await browse.click();
+  await expect(gallery.getByRole("button", { name: /Use design:/ })).toHaveCount(1);
+  const [preview] = await Promise.all([
+    page.waitForEvent("popup"),
+    gallery.getByRole("link", { name: "Preview: Graduation Honours" }).click(),
+  ]);
+  await preview.waitForURL("**/t/graduation-honours?lang=en");
+  await expect(preview.getByRole("button", { name: "Open invitation" })).toBeVisible();
+  await preview.close();
+  await gallery.getByRole("button", { name: "Use design: Graduation Honours" }).click();
+  await expect(page.locator("#event-template")).toHaveValue("graduation-honours");
+  await expect(gallery).toBeHidden();
+  await page.fill("#title", "Graduation Celebration");
+  await page.fill("#he", "Rathana");
+  await page.fill("#date", "2027-07-20");
+  await page.getByRole("button", { name: "Create & open builder" }).click();
+  await page.waitForURL("**/builder");
+  await expect(page.frameLocator("iframe").first().getByText("Rathana", { exact: true }).first()).toBeVisible();
+});
+
 test("owner creates, publishes and manages an event; guest RSVPs; staff checks in", async ({ page, browser, context }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(String(e)));
   await register(page, "Sokha Owner", `owner-${uid}@example.com`);
 
-  // Event wizard
+  // Event creation with template preselection and a persisted form draft.
   await page.goto("/dashboard/events/new?template=ivory-champagne");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: /ពិធីមង្គលការ/ }).first().click();
+  await expect(page.locator("#event-template")).toHaveValue("ivory-champagne");
   await page.fill("#title", "E2E Wedding");
-  await page.fill("#hk", "វិចិត្រ & សុភ័ក្ត្រ");
-  await page.fill("#he", "Vichet & Sopheak");
+  await page.fill("#partner-one", "វិចិត្រ");
+  await page.fill("#partner-two", "សុភ័ក្ត្រ");
   await page.fill("#date", "2027-03-20");
   await page.fill("#st", "17:00");
   await page.fill("#vn", "Diamond Island Hall");
-  await page.getByRole("button", { name: "បន្ទាប់" }).click();
-  await page.getByRole("button", { name: "បន្ទាប់" }).click();
-  await page.getByRole("button", { name: /បង្កើត/ }).click();
+  await page.fill("#event-message", "Welcome to our celebration");
+  await page.getByRole("button", { name: "បន្ថែមសកម្មភាព", exact: true }).click();
+  await page.fill("#agenda-time-1", "18:00");
+  await page.fill("#agenda-title-1", "Dinner reception");
+  await page.fill("#agenda-notes-1", "Meet us in the main hall");
+  await page.reload();
+  await expect(page.locator("#partner-one")).toHaveValue("វិចិត្រ");
+  await expect(page.locator("#agenda-title-1")).toHaveValue("Dinner reception");
+  await page.locator("#event-cover").setInputFiles({
+    name: "cover.png",
+    mimeType: "image/png",
+    buffer: await sharp({ create: { width: 160, height: 90, channels: 3, background: "#b68a45" } }).png().toBuffer(),
+  });
+  await page.locator("#event-create-form button[type=submit]").click();
   await page.waitForURL("**/builder");
   const eventId = page.url().match(/events\/([0-9a-f-]{36})/)![1];
 
   // Builder: edit + autosave + live preview + undo
   await page.getByRole("button", { name: "សេចក្ដីអញ្ជើញ", exact: true }).click();
+  await expect(page.locator("textarea[id$='.body-km']")).toHaveValue("Welcome to our celebration");
   await page.locator("textarea[id$='.body-km']").fill("សូមគោរពអញ្ជើញចូលរួម (E2E)");
   await expect(page.getByRole("button", { name: "Undo" })).toBeEnabled();
   await expect(page.getByText("បានរក្សាទុក")).toBeVisible({ timeout: 10_000 });
@@ -47,6 +95,12 @@ test("owner creates, publishes and manages an event; guest RSVPs; staff checks i
   await page.locator("header").getByRole("button", { name: /ផ្សព្វផ្សាយ/ }).first().click();
   await page.goto(`/dashboard/events/${eventId}`);
   await expect(page.getByText("កំពុងផ្សព្វផ្សាយ")).toBeVisible();
+  await page.goto(`/dashboard/events/${eventId}/settings`);
+  await page.getByRole("checkbox", { name: /បើកតំណសាធារណៈ/ }).check();
+  await page.getByRole("button", { name: "រក្សាទុក", exact: true }).click();
+  const publicLink = page.getByText(/https?:\/\/[^\s]+\/e\/[A-Za-z0-9_-]+/);
+  await expect(publicLink).toBeVisible();
+  const publicPath = new URL((await publicLink.textContent())!).pathname;
 
   // Guest import with duplicate detection
   await page.goto(`/dashboard/events/${eventId}/guests`);
@@ -71,7 +125,17 @@ test("owner creates, publishes and manages an event; guest RSVPs; staff checks i
   const guest = await gctx.newPage();
   const res = await guest.goto(link);
   expect(res!.headers()["x-robots-tag"]).toContain("noindex");
+  const shareImage = guest.locator('meta[property="og:image"]');
+  await expect(shareImage).toHaveAttribute("content", /\/api\/media\/[0-9a-f-]{36}$/);
+  const coverUrl = (await shareImage.getAttribute("content"))!;
+  const imageResponse = await guest.request.get(new URL(coverUrl).pathname);
+  expect(imageResponse.headers()["content-type"]).toBe("image/jpeg");
+  const publicPage = await gctx.newPage();
+  await publicPage.goto(publicPath);
+  await expect(publicPage.locator('meta[property="og:image"]')).toHaveAttribute("content", coverUrl);
+  await publicPage.close();
   await guest.getByRole("button", { name: "បើកធៀប" }).click();
+  await expect(guest.getByText("Dinner reception")).toBeVisible();
   await expect(guest.getByText("សុខ ដារ៉ា").first()).toBeVisible();
   await guest.getByRole("button", { name: "ចូលរួម", exact: true }).click();
   await guest.getByRole("button", { name: "+" }).click();

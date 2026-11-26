@@ -17,7 +17,11 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
     title: data ? data.event.title : "Invitation",
     robots: { index: false, follow: false },
     referrer: "no-referrer",
-    openGraph: data ? { title: data.event.title, description: data.event.venueName ?? undefined } : undefined,
+    openGraph: data ? {
+      title: data.event.title,
+      description: data.event.venueName ?? undefined,
+      images: data.doc.shareImage?.startsWith("/api/media/") ? [data.doc.shareImage] : undefined,
+    } : undefined,
   };
 }
 

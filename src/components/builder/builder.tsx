@@ -28,7 +28,7 @@ type SaveState = "saved" | "dirty" | "saving" | "error" | "conflict";
 type Device = "mobile" | "tablet" | "desktop";
 
 export function Builder(props: {
-  eventId: string; eventTitle: string; initialDoc: InvitationDoc; initialRevision: number; templateSlug: string; event: EventInfo;
+  eventId: string; eventTitle: string; initialDoc: InvitationDoc; initialRevision: number; templateSlug: string; templateSlugs: string[]; event: EventInfo;
   media: MediaItem[]; locale: "km" | "en"; giftLocked: boolean; canEditGift: boolean; canPublish: boolean; published: boolean;
 }) {
   const L = (km: string, en: string) => (props.locale === "km" ? km : en);
@@ -173,7 +173,7 @@ export function Builder(props: {
       <div>
         <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted">{L("គំរូ", "Template")}</p>
         <div className="grid grid-cols-3 gap-2">
-          {TEMPLATES.map((t) => (
+          {TEMPLATES.filter((t) => props.templateSlugs.includes(t.slug) || t.slug === tplSlug).map((t) => (
             <button key={t.slug} onClick={() => setTplSlug(t.slug)} title={t.name[props.locale]} aria-pressed={tplSlug === t.slug}
               className={cn("overflow-hidden rounded-lg border-2 transition-all", tplSlug === t.slug ? "border-gold" : "border-transparent hover:border-line-2")}>
               <TemplateThumb slug={t.slug} locale={props.locale} width={76} />
@@ -239,6 +239,8 @@ export function Builder(props: {
         </label>
         <p className="text-[11px] leading-5 text-muted">{L("មើលចលនាពេញលេញតាមប៊ូតុង «មើល»។ ភ្ញៀវដែលបិទចលនាក្នុងទូរស័ព្ទ នឹងឃើញកំណែស្ងប់។", "See full animation via “Preview”. Guests who turned off motion on their phone get a calm version automatically.")}</p>
       </div>
+      <MediaPicker c={ctx} label={L("រូបក្របតំណធៀប", "Link preview cover")} value={doc.shareImage ?? ""}
+        onChange={(value) => set({ ...doc, shareImage: value })} />
       <MediaPicker c={ctx} purpose="audio" label={L("ភ្លេងផ្ទៃខាងក្រោយ (ចាប់ផ្ដើមតែពេលភ្ញៀវបើកធៀប)", "Background music (starts only when the guest opens)")} value={doc.theme.music.src}
         onChange={(v) => set({ ...doc, theme: { ...doc.theme, music: { ...doc.theme.music, src: v } } })} />
     </div>

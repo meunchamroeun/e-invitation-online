@@ -6,6 +6,7 @@ import { getI18n } from "@/i18n/server";
 import { Builder } from "@/components/builder/builder";
 import { InvitationDocSchema } from "@/features/invitations/doc";
 import { eventInfo } from "@/features/invitations/load";
+import { listMarketTemplates } from "@/features/templates/queries";
 
 export const metadata = { title: "Builder" };
 
@@ -13,7 +14,10 @@ export default async function BuilderPage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   const { event, role } = await requireEvent(id, "event.edit");
   const { locale } = await getI18n();
-  const media = await db.select({ id: schema.mediaAssets.id, kind: schema.mediaAssets.kind }).from(schema.mediaAssets).where(eq(schema.mediaAssets.eventId, id)).orderBy(desc(schema.mediaAssets.createdAt)).limit(200);
+  const [media, templates] = await Promise.all([
+    db.select({ id: schema.mediaAssets.id, kind: schema.mediaAssets.kind }).from(schema.mediaAssets).where(eq(schema.mediaAssets.eventId, id)).orderBy(desc(schema.mediaAssets.createdAt)).limit(200),
+    listMarketTemplates(),
+  ]);
   const doc = InvitationDocSchema.parse(event.draft);
   return (
     <Builder
@@ -22,6 +26,7 @@ export default async function BuilderPage({ params }: { params: Promise<{ id: st
       initialDoc={doc}
       initialRevision={event.revision}
       templateSlug={event.templateSlug}
+      templateSlugs={templates.map(({ slug }) => slug)}
       event={eventInfo(event)}
       media={media.map((m) => ({ ...m, url: `/api/media/${m.id}` }))}
       locale={locale}
