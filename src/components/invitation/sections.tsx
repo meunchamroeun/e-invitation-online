@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { CalendarPlus, ChevronLeft, ChevronRight, Copy, Download, MapPin, Mic, Music, Navigation, Scissors, Send, Wine, X, Flame as FlameIcon, Car } from "lucide-react";
+import { CalendarPlus, ChevronLeft, ChevronRight, Copy, Download, MapPin, Maximize2, Mic, Music, Navigation, Pause, Play, Scissors, Send, Wine, X, Flame as FlameIcon, Car } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import type { Section, LText } from "@/features/invitations/doc";
 import { pick } from "@/features/invitations/doc";
 import type { TemplateDef } from "@/features/templates/registry";
@@ -1021,30 +1022,26 @@ function StorySection({ s, ctx }: { s: Extract<Section, { type: "story" }>; ctx:
 
 function GallerySection({ s, ctx }: { s: Extract<Section, { type: "gallery" }>; ctx: Ctx }) {
   const [open, setOpen] = useState<number | null>(null);
-  const [slide, setSlide] = useState(0);
-  const [instant, setInstant] = useState(false);
+  const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
+  const stripRef = useRef<HTMLDivElement>(null);
   const photos = s.data.photos;
   const loop = photos.length > 1;
-  const track = loop ? [...photos, photos[0]] : photos;
 
   useEffect(() => {
     if (!loop || paused || open !== null || ctx.mode === "editor") return;
     const id = window.setInterval(() => {
-      setInstant(false);
-      setSlide((i) => (i >= photos.length ? 1 : i + 1));
-    }, 2800);
+      setActive((i) => (i + 1) % photos.length);
+    }, 3600);
     return () => window.clearInterval(id);
   }, [loop, photos.length, paused, open, ctx.mode]);
 
   useEffect(() => {
-    if (!loop || slide !== photos.length) return;
-    const t = window.setTimeout(() => {
-      setInstant(true);
-      setSlide(0);
-    }, 1000);
-    return () => window.clearTimeout(t);
-  }, [loop, slide, photos.length]);
+    const strip = stripRef.current;
+    if (!strip) return;
+    const btn = strip.children[active] as HTMLElement | undefined;
+    btn?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }, [active]);
 
   useEffect(() => {
     if (open === null) return;
@@ -1059,103 +1056,143 @@ function GallerySection({ s, ctx }: { s: Extract<Section, { type: "gallery" }>; 
   const [touchX, setTouchX] = useState<number | null>(null);
   const [slideTouchX, setSlideTouchX] = useState<number | null>(null);
   if (!photos.length) return null;
-  const active = slide % photos.length;
-  const goTo = (next: number) => {
-    setInstant(false);
-    setSlide((next + photos.length) % photos.length);
-  };
+  const safeActive = active % photos.length;
+  const current = photos[safeActive];
+  const goTo = (next: number) => setActive((next + photos.length) % photos.length);
+
   return (
     <Shell ctx={ctx} narrow={false}>
       <Heading ctx={ctx}>{ctx.tx(s.data.heading)}</Heading>
       <Reveal>
         <div className="mx-auto max-w-md">
+          {/* Main Showcase Stage */}
           <div
-            className="relative touch-pan-y overflow-hidden rounded-2xl shadow-xl"
-            style={{ border: "1px solid color-mix(in oklab, var(--inv-accent) 40%, transparent)" }}
+            className="group relative touch-pan-y overflow-hidden rounded-[1.5rem] bg-black/5 shadow-2xl"
+            style={{ border: "1px solid color-mix(in oklab, var(--inv-accent) 45%, transparent)" }}
+            onMouseEnter={() => setPaused(true)}
+            onMouseLeave={() => setPaused(false)}
             onTouchStart={(e) => { setPaused(true); setSlideTouchX(e.touches[0].clientX); }}
             onTouchEnd={(e) => {
               if (slideTouchX !== null) {
                 const dx = e.changedTouches[0].clientX - slideTouchX;
-                if (Math.abs(dx) > 35) goTo(active + (dx < 0 ? 1 : -1));
+                if (Math.abs(dx) > 35) goTo(safeActive + (dx < 0 ? 1 : -1));
               }
               setSlideTouchX(null);
               setPaused(false);
             }}
           >
-            <div
-              className={`flex will-change-transform ${instant ? "" : "transition-transform duration-1000 ease-[cubic-bezier(0.25,1,0.5,1)]"}`}
-              style={{ transform: `translate3d(-${slide * 100}%, 0, 0)` }}
+            <button
+              type="button"
+              onClick={() => setOpen(safeActive)}
+              className={`relative block w-full overflow-hidden focus-visible:outline-2 ${ctx.fam.hero === "curtains" ? "aspect-[9/16]" : "aspect-[3/4]"}`}
+              aria-label={`${ctx.tx(current.caption) || "Photo"} ${safeActive + 1}`}
             >
-              {track.map((p, i) => {
-                const idx = i % photos.length;
-                return (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => setOpen(idx)}
-                    className="group relative w-full shrink-0 overflow-hidden focus-visible:outline-2"
-                    aria-label={`${ctx.tx(p.caption) || "Photo"} ${idx + 1}`}
-                  >
-                    <div className={ctx.fam.hero === "curtains" ? "aspect-[9/16]" : "aspect-[3/4]"}>
-                      <Photo
-                        src={p.src}
-                        alt={ctx.tx(p.caption) || `Photo ${idx + 1}`}
-                        kenBurns={idx === active}
-                        className="transition-transform duration-700 ease-out group-hover:scale-105"
-                      />
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+              <AnimatePresence mode="popLayout" initial={false}>
+                <motion.div
+                  key={safeActive}
+                  initial={{ opacity: 0, scale: 1.05 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.97 }}
+                  transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                  className="absolute inset-0"
+                >
+                  <Photo
+                    src={current.src}
+                    alt={ctx.tx(current.caption) || `Photo ${safeActive + 1}`}
+                    kenBurns
+                    className="transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+                  />
+                </motion.div>
+              </AnimatePresence>
+              <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/45 via-black/10 to-transparent" />
+            </button>
+
+            {/* Top-right counter + play/pause pill */}
+            {loop ? (
+              <div className="absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-full border border-white/20 bg-black/40 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-md">
+                <button
+                  type="button"
+                  onClick={() => setPaused((p) => !p)}
+                  className="rounded-full p-0.5 transition-colors hover:text-[#F0D48F]"
+                  aria-label={paused ? "Play slideshow" : "Pause slideshow"}
+                >
+                  {paused ? <Play className="h-3 w-3" /> : <Pause className="h-3 w-3" />}
+                </button>
+                <span className="num tabular-nums">{num(safeActive + 1, ctx.locale, ctx.khNum)} / {num(photos.length, ctx.locale, ctx.khNum)}</span>
+              </div>
+            ) : null}
+
+            {/* Bottom-right fullscreen trigger */}
+            <button
+              type="button"
+              onClick={() => setOpen(safeActive)}
+              className="absolute bottom-3 right-3 z-10 rounded-full border border-white/20 bg-black/40 p-2 text-white backdrop-blur-md transition-transform hover:scale-110 hover:bg-black/60"
+              aria-label="Open fullscreen"
+            >
+              <Maximize2 className="h-4 w-4" />
+            </button>
 
             {loop ? (
               <>
                 <button
                   type="button"
-                  onClick={() => goTo(active - 1)}
-                  className="absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/35 p-2 text-white backdrop-blur-md transition-transform hover:scale-110 hover:bg-black/50"
+                  onClick={() => goTo(safeActive - 1)}
+                  className="absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-full border border-white/20 bg-black/35 p-2 text-white backdrop-blur-md transition-transform hover:scale-110 hover:bg-black/55"
                   aria-label="Previous photo"
                 >
                   <ChevronLeft className="h-5 w-5" />
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setInstant(false); setSlide((i) => (i >= photos.length ? 1 : i + 1)); }}
-                  className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/35 p-2 text-white backdrop-blur-md transition-transform hover:scale-110 hover:bg-black/50"
+                  onClick={() => goTo(safeActive + 1)}
+                  className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-full border border-white/20 bg-black/35 p-2 text-white backdrop-blur-md transition-transform hover:scale-110 hover:bg-black/55"
                   aria-label="Next photo"
                 >
                   <ChevronRight className="h-5 w-5" />
                 </button>
-                <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/35 px-3 py-1.5 backdrop-blur-md">
-                  {photos.map((_, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => goTo(i)}
-                      aria-label={`Slide ${i + 1}`}
-                      className={`h-1.5 rounded-full transition-all duration-500 ${i === active ? "w-6 bg-white" : "w-1.5 bg-white/50 hover:bg-white/80"}`}
-                    />
-                  ))}
-                </div>
+                {/* Auto-advance progress bar */}
+                {!paused && open === null && ctx.mode !== "editor" ? (
+                  <motion.div
+                    key={safeActive}
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: 1 }}
+                    transition={{ duration: 3.6, ease: "linear" }}
+                    className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-0.5 origin-left"
+                    style={{ background: "linear-gradient(90deg, var(--inv-primary), var(--inv-accent))" }}
+                  />
+                ) : null}
               </>
             ) : null}
           </div>
 
+          {/* Modern Horizontal Filmstrip Thumbnail Dock */}
           {loop ? (
-            <div className="mt-3.5 grid grid-cols-4 gap-2">
-              {photos.map((p, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => goTo(i)}
-                  className={`aspect-[3/4] overflow-hidden rounded-lg transition-all duration-300 ${i === active ? "scale-[1.02] opacity-100 ring-2 ring-offset-1" : "opacity-55 hover:opacity-85"}`}
-                  style={{ ["--tw-ring-color" as string]: "var(--inv-primary)" }}
-                  aria-label={`Select photo ${i + 1}`}
-                >
-                  <Photo src={p.src} alt="" label="" />
-                </button>
-              ))}
+            <div
+              ref={stripRef}
+              className="mt-3.5 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-1 py-1.5 [scrollbar-width:none]"
+            >
+              {photos.map((p, i) => {
+                const isOn = i === safeActive;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => goTo(i)}
+                    className={`relative h-20 w-16 shrink-0 snap-center overflow-hidden rounded-xl transition-all duration-300 ${isOn ? "scale-105 opacity-100 shadow-md" : "opacity-75 hover:opacity-100"}`}
+                    aria-label={`Select photo ${i + 1}`}
+                  >
+                    <Photo src={p.src} alt="" label="" />
+                    {isOn ? (
+                      <motion.span
+                        layoutId="gallery-thumb-ring"
+                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                        className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-inset"
+                        style={{ ["--tw-ring-color" as string]: "var(--inv-primary)" }}
+                      />
+                    ) : null}
+                  </button>
+                );
+              })}
             </div>
           ) : null}
         </div>
