@@ -343,6 +343,7 @@ export function SectionEditor({ s, c, update }: { s: Section; c: EditorCtx; upda
       return (
         <Group title={title}>
           <LInput k={`${k}.heading`} label={T(c, "ចំណងជើង", "Heading")} value={s.data.heading} onChange={(v) => set({ heading: v }, "heading")} />
+          <MediaPicker c={c} purpose="video" label={T(c, "វីដេអូ (លេងស្វ័យប្រវត្តិ គ្មានសំឡេង)", "Video (autoplay muted)")} value={s.data.video ?? ""} onChange={(v) => set({ video: v }, "video")} />
           <BulkPhotos c={c} onAdd={(urls) => set({ photos: [...s.data.photos.filter((p) => !p.src.startsWith("placeholder:")), ...urls.map((u) => ({ src: u, caption: e() }))].slice(0, 60) }, "photos-bulk")} />
           <ListEditor c={c} max={60} items={s.data.photos} onChange={(v) => set({ photos: v }, "photos")} addLabel={T(c, "បន្ថែមរូបថត", "Add photo")}
             blank={() => ({ src: "", caption: e() })}

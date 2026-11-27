@@ -1055,14 +1055,34 @@ function GallerySection({ s, ctx }: { s: Extract<Section, { type: "gallery" }>; 
   }, [open, photos.length]);
   const [touchX, setTouchX] = useState<number | null>(null);
   const [slideTouchX, setSlideTouchX] = useState<number | null>(null);
-  if (!photos.length) return null;
-  const safeActive = active % photos.length;
+  const videoSrc = s.data.video && !s.data.video.startsWith("placeholder:") ? s.data.video : "";
+  if (!photos.length && !videoSrc) return null;
+  const safeActive = photos.length ? active % photos.length : 0;
   const current = photos[safeActive];
-  const goTo = (next: number) => setActive((next + photos.length) % photos.length);
+  const goTo = (next: number) => photos.length && setActive((next + photos.length) % photos.length);
 
   return (
     <Shell ctx={ctx} narrow={false}>
       <Heading ctx={ctx}>{ctx.tx(s.data.heading)}</Heading>
+      {videoSrc ? (
+        <Reveal>
+          <div
+            className="mx-auto mb-6 max-w-md overflow-hidden rounded-[1.5rem] bg-black shadow-2xl"
+            style={{ border: "1px solid color-mix(in oklab, var(--inv-accent) 45%, transparent)" }}
+          >
+            <video
+              src={videoSrc}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="auto"
+              className="w-full object-cover"
+            />
+          </div>
+        </Reveal>
+      ) : null}
+      {photos.length ? (
       <Reveal>
         <div className="mx-auto max-w-md">
           {/* Main Showcase Stage */}
@@ -1197,7 +1217,8 @@ function GallerySection({ s, ctx }: { s: Extract<Section, { type: "gallery" }>; 
           ) : null}
         </div>
       </Reveal>
-      {open !== null ? (
+      ) : null}
+      {open !== null && photos.length ? (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black/92 p-4 backdrop-blur-sm"
           onTouchStart={(e) => setTouchX(e.touches[0].clientX)}
           onTouchEnd={(e) => { if (touchX === null) return; const dx = e.changedTouches[0].clientX - touchX; if (Math.abs(dx) > 40) setOpen((o) => (o! + (dx < 0 ? 1 : -1) + photos.length) % photos.length); setTouchX(null); }}>
