@@ -16,14 +16,15 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
   const inviteLine = data
     ? `${data.doc.defaultLocale === "en" ? "We cordially invite" : "សូមគោរពអញ្ជើញ"} ${guestLabel}`
     : "";
-  const desc = [inviteLine, data?.event.venueName].filter(Boolean).join(" · ") || undefined;
+  const ogTitle = data ? `${inviteLine} · ${data.event.title}` : "Invitation";
+  const ogDesc = data ? ([data.event.venueName, data.event.venueAddress].filter(Boolean).join(" · ") || undefined) : undefined;
   return {
-    title: data ? `${data.event.title} · ${guestLabel}` : "Invitation",
+    title: ogTitle,
     robots: { index: false, follow: false },
     referrer: "no-referrer",
     openGraph: data ? {
-      title: data.event.title,
-      description: desc,
+      title: ogTitle,
+      description: ogDesc,
       images: data.doc.shareImage?.startsWith("/api/media/") ? [data.doc.shareImage] : undefined,
     } : undefined,
   };
