@@ -19,6 +19,9 @@ test("hosts can browse matching designs, preview them, and create a graduation i
   await context.addCookies([{ name: "ei_locale", value: "en", url: baseURL! }]);
   await register(page, "Rathana", `graduation-${uid}@example.com`);
   await page.goto("/dashboard/events/new");
+  const today = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Phnom_Penh", dateStyle: "short" }).format(new Date());
+  await expect(page.locator("#date")).toHaveValue(today);
+  await expect(page.locator("#st")).toHaveValue("");
   const browse = page.getByRole("button", { name: "Browse designs" });
   const gallery = page.getByRole("dialog", { name: "Choose an invitation design" });
   await browse.click();
@@ -45,6 +48,7 @@ test("hosts can browse matching designs, preview them, and create a graduation i
   await page.fill("#title", "Graduation Celebration");
   await page.fill("#he", "Rathana");
   await page.fill("#date", "2027-07-20");
+  await page.fill("#st", "17:00");
   await page.getByRole("button", { name: "Create & open builder" }).click();
   await page.waitForURL("**/builder");
   await expect(page.frameLocator("iframe").first().getByText("Rathana", { exact: true }).first()).toBeVisible();
@@ -67,6 +71,7 @@ test("owner creates, publishes and manages an event; guest RSVPs; staff checks i
   await page.fill("#st", "17:00");
   await page.fill("#vn", "Diamond Island Hall");
   await page.fill("#event-message", "Welcome to our celebration");
+  await page.fill("#organizer-notes", "Private: confirm the table layout");
   await page.getByRole("button", { name: "បន្ថែមសកម្មភាព", exact: true }).click();
   await page.fill("#agenda-time-1", "18:00");
   await page.fill("#agenda-title-1", "Dinner reception");
@@ -74,6 +79,7 @@ test("owner creates, publishes and manages an event; guest RSVPs; staff checks i
   await page.reload();
   await expect(page.locator("#partner-one")).toHaveValue("វិចិត្រ");
   await expect(page.locator("#agenda-title-1")).toHaveValue("Dinner reception");
+  await expect(page.locator("#organizer-notes")).toHaveValue("Private: confirm the table layout");
   await page.locator("#event-cover").setInputFiles({
     name: "cover.png",
     mimeType: "image/png",
@@ -96,11 +102,15 @@ test("owner creates, publishes and manages an event; guest RSVPs; staff checks i
   await page.goto(`/dashboard/events/${eventId}`);
   await expect(page.getByText("កំពុងផ្សព្វផ្សាយ")).toBeVisible();
   await page.goto(`/dashboard/events/${eventId}/settings`);
+  await expect(page.locator("#organizer-notes")).toHaveValue("Private: confirm the table layout");
+  await page.fill("#organizer-notes", "Private: layout confirmed");
   await page.getByRole("checkbox", { name: /បើកតំណសាធារណៈ/ }).check();
   await page.getByRole("button", { name: "រក្សាទុក", exact: true }).click();
   const publicLink = page.getByText(/https?:\/\/[^\s]+\/e\/[A-Za-z0-9_-]+/);
   await expect(publicLink).toBeVisible();
   const publicPath = new URL((await publicLink.textContent())!).pathname;
+  await page.reload();
+  await expect(page.locator("#organizer-notes")).toHaveValue("Private: layout confirmed");
 
   // Guest import with duplicate detection
   await page.goto(`/dashboard/events/${eventId}/guests`);
@@ -125,13 +135,15 @@ test("owner creates, publishes and manages an event; guest RSVPs; staff checks i
   const guest = await gctx.newPage();
   const res = await guest.goto(link);
   expect(res!.headers()["x-robots-tag"]).toContain("noindex");
+  expect(await res!.text()).not.toContain("Private: layout confirmed");
   const shareImage = guest.locator('meta[property="og:image"]');
   await expect(shareImage).toHaveAttribute("content", /\/api\/media\/[0-9a-f-]{36}$/);
   const coverUrl = (await shareImage.getAttribute("content"))!;
   const imageResponse = await guest.request.get(new URL(coverUrl).pathname);
   expect(imageResponse.headers()["content-type"]).toBe("image/jpeg");
   const publicPage = await gctx.newPage();
-  await publicPage.goto(publicPath);
+  const publicResponse = await publicPage.goto(publicPath);
+  expect(await publicResponse!.text()).not.toContain("Private: layout confirmed");
   await expect(publicPage.locator('meta[property="og:image"]')).toHaveAttribute("content", coverUrl);
   await publicPage.close();
   await guest.getByRole("button", { name: "បើកធៀប" }).click();

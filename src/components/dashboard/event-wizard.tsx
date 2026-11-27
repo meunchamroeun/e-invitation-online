@@ -9,7 +9,7 @@ import type { MarketTemplate } from "@/features/templates/queries";
 import { createEventAction } from "@/features/events/actions";
 import { Button, Field, Input, Select, Textarea, buttonClass } from "@/components/ui";
 import { EventTemplatePicker } from "@/components/dashboard/event-template-picker";
-import { toKhmerDigits } from "@/i18n/format";
+import { toKhmerDigits, zonedParts } from "@/i18n/format";
 import { cn } from "@/lib/utils";
 
 const STORAGE = "ei:wizard:v1";
@@ -42,6 +42,8 @@ const COPY = {
   map: { km: "តំណ Google Maps", en: "Google Maps link" },
   message: { km: "សារអញ្ជើញ", en: "Invitation message" },
   messageHint: { km: "បង្ហាញនៅលើធៀបរបស់ភ្ញៀវ", en: "Shown on the guest invitation" },
+  organizerNotes: { km: "កំណត់ចំណាំអ្នករៀបចំ", en: "Organizer notes" },
+  organizerNotesHint: { km: "មើលបានតែក្នុងផ្ទាំងគ្រប់គ្រងកម្មវិធី", en: "Visible in event settings only" },
   agenda: { km: "របៀបវារៈកម្មវិធី", en: "Event agenda" },
   agendaIntro: { km: "បន្ថែមសកម្មភាពដែលអ្នកចង់បង្ហាញលើធៀប។", en: "Add activities to show on the invitation." },
   agendaTime: { km: "ម៉ោង", en: "Time" },
@@ -92,6 +94,7 @@ type Draft = {
   mapUrl: string;
   template: string;
   message: string;
+  organizerNotes: string;
   agenda: AgendaEntry[];
   legacyHosts: boolean;
   entryTemplate: string;
@@ -99,24 +102,28 @@ type Draft = {
 
 const EMPTY: Draft = {
   type: "wedding", title: "", hostKm: "", hostEn: "", partnerOne: "", partnerTwo: "",
-  date: "", startTime: "17:00", endTime: "", venueName: "", venueAddress: "", mapUrl: "",
-  template: "", message: "", agenda: [], legacyHosts: false, entryTemplate: "",
+  date: "", startTime: "", endTime: "", venueName: "", venueAddress: "", mapUrl: "",
+  template: "", message: "", organizerNotes: "", agenda: [], legacyHosts: false, entryTemplate: "",
 };
 
 function readDraft(): Draft {
+  const { year, month, day } = zonedParts(new Date());
+  const today = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  const defaults = { ...EMPTY, date: today };
   try {
     const stored = JSON.parse(localStorage.getItem(STORAGE) ?? "null") as (Partial<Draft> & { step?: number }) | null;
-    if (!stored) return EMPTY;
+    if (!stored) return defaults;
     const type = EVENT_TYPES.find((type) => type.value === stored.type)?.value ?? EMPTY.type;
     const agenda = Array.isArray(stored.agenda) ? stored.agenda.slice(0, AGENDA_LIMIT)
       .filter((item) => item && [item.id, item.time, item.title, item.notes].every((value) => typeof value === "string")) : [];
     const { step, ...draft } = stored;
     return {
-      ...EMPTY, ...draft, type, agenda,
+      ...defaults, ...draft, type, agenda,
+      date: draft.date || today,
       legacyHosts: draft.legacyHosts || (step !== undefined && Boolean(draft.hostKm || draft.hostEn)),
     };
   } catch { /* Storage can be unavailable. */ }
-  return EMPTY;
+  return defaults;
 }
 
 function preferredTemplate(templates: MarketTemplate[], type: EventType) {
@@ -251,7 +258,7 @@ export function EventWizard({ locale, templates, initialTemplate }: {
         partnerOne: couple ? draft.partnerOne : "", partnerTwo: couple ? draft.partnerTwo : "",
         date: draft.date, startTime: draft.startTime, endTime: draft.endTime, timezone: "Asia/Phnom_Penh",
         venueName: draft.venueName, venueAddress: draft.venueAddress, mapUrl: draft.mapUrl, template: draft.template,
-        message: draft.message, locale,
+        message: draft.message, organizerNotes: draft.organizerNotes, locale,
         agenda: draft.agenda.filter(({ time, title, notes }) => time || title.trim() || notes.trim())
           .map(({ time, title, notes }) => ({ time, title, notes })),
       }, form);
@@ -355,6 +362,11 @@ export function EventWizard({ locale, templates, initialTemplate }: {
                   <Field label={L(COPY.message)} htmlFor="event-message" className="sm:col-span-2">
                     <Textarea id="event-message" aria-describedby="event-message-hint" rows={3} maxLength={2000} value={draft.message} onChange={(e) => update({ message: e.target.value })} />
                     <p id="event-message-hint" className="mt-1 text-xs text-ink-2">{L(COPY.messageHint)}</p>
+                  </Field>
+                  <Field label={L(COPY.organizerNotes)} htmlFor="organizer-notes" className="sm:col-span-2">
+                    <Textarea id="organizer-notes" aria-describedby="organizer-notes-hint" rows={3} maxLength={2000}
+                      value={draft.organizerNotes} onChange={(e) => update({ organizerNotes: e.target.value })} />
+                    <p id="organizer-notes-hint" className="mt-1 text-xs text-ink-2">{L(COPY.organizerNotesHint)}</p>
                   </Field>
                 </div>
               </FormSection>

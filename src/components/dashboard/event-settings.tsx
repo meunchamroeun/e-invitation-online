@@ -3,9 +3,9 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Lock, LockOpen } from "lucide-react";
 import { deleteEventAction, setGiftQrLockAction, unpublishAction, updateEventSettingsAction } from "@/features/events/actions";
-import { Button, Field, Input } from "@/components/ui";
+import { Button, Field, Input, Textarea } from "@/components/ui";
 
-type S = { title: string; timezone: string; date: string; startTime: string; endTime: string; venueName: string; venueAddress: string; mapUrl: string; rsvpDeadline: string; allowMaybe: boolean; wishesEnabled: boolean; isPublic: boolean };
+type S = { title: string; organizerNotes: string; timezone: string; date: string; startTime: string; endTime: string; venueName: string; venueAddress: string; mapUrl: string; rsvpDeadline: string; allowMaybe: boolean; wishesEnabled: boolean; isPublic: boolean };
 
 export function EventSettingsForm({ eventId, locale, initial, canDelete, canQr, canPublish, published, giftLocked, publicUrl }: { eventId: string; locale: "km" | "en"; initial: S; canDelete: boolean; canQr: boolean; canPublish: boolean; published: boolean; giftLocked: boolean; publicUrl: string | null }) {
   const L = (km: string, en: string) => (locale === "km" ? km : en);
@@ -32,6 +32,9 @@ export function EventSettingsForm({ eventId, locale, initial, canDelete, canQr, 
           <Field label={L("តំណ Google Maps", "Google Maps link")} className="sm:col-span-2" htmlFor="s-m"><Input id="s-m" type="url" value={v.mapUrl} onChange={(e) => up({ mapUrl: e.target.value })} /></Field>
           <Field label={L("ថ្ងៃផុតកំណត់ RSVP", "RSVP deadline")} htmlFor="s-r"><Input id="s-r" type="date" value={v.rsvpDeadline} onChange={(e) => up({ rsvpDeadline: e.target.value })} /></Field>
           <Field label={L("ល្វែងម៉ោង", "Timezone")} htmlFor="s-z"><Input id="s-z" value={v.timezone} onChange={(e) => up({ timezone: e.target.value })} /></Field>
+          <Field label={L("កំណត់ចំណាំអ្នករៀបចំ", "Organizer notes")} htmlFor="organizer-notes" className="sm:col-span-2">
+            <Textarea id="organizer-notes" maxLength={2000} value={v.organizerNotes} onChange={(e) => up({ organizerNotes: e.target.value })} />
+          </Field>
         </div>
         <div className="mt-5 space-y-3 border-t border-line pt-5 text-sm">
           {([["allowMaybe", L("អនុញ្ញាតជម្រើស «មិនទាន់ប្រាកដ»", "Allow “Maybe” replies")], ["wishesEnabled", L("បើកពាក្យជូនពរ (ត្រូវការការអនុម័ត)", "Enable wishes (moderated)")], ["isPublic", L("បើកតំណសាធារណៈ (មើលបាន មិនអាច RSVP)", "Enable a public link (view-only, no RSVP)")]] as const).map(([k, label]) => (

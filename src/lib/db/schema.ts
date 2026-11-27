@@ -117,6 +117,7 @@ export const events = pgTable(
     ownerId: uuid("owner_id").notNull().references(() => users.id),
     type: text("type").notNull(),
     title: text("title").notNull(),
+    organizerNotes: text("organizer_notes"),
     status: text("status").notNull().default("draft"), // draft | published | archived
     timezone: text("timezone").notNull().default("Asia/Phnom_Penh"),
     startsAt: ts("starts_at"),

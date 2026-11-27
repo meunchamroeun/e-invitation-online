@@ -4,6 +4,8 @@ import { getListedTemplate } from "@/features/templates/queries";
 import { InvitationRenderer } from "@/components/invitation/renderer";
 import type { Metadata } from "next";
 
+export const dynamic = "force-dynamic";
+
 export function generateStaticParams() {
   return TEMPLATES.map((t) => ({ slug: t.slug }));
 }

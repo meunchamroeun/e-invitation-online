@@ -19,7 +19,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
       giftLocked={event.giftQrLocked}
       publicUrl={event.isPublic && event.publicSlug ? `${appUrl()}/e/${event.publicSlug}` : null}
       initial={{
-        title: event.title, timezone: event.timezone,
+        title: event.title, organizerNotes: event.organizerNotes ?? "", timezone: event.timezone,
         date: p ? `${p.year}-${pad(p.month)}-${pad(p.day)}` : "", startTime: p ? `${pad(p.hour)}:${pad(p.minute)}` : "", endTime: e ? `${pad(e.hour)}:${pad(e.minute)}` : "",
         venueName: event.venueName ?? "", venueAddress: event.venueAddress ?? "", mapUrl: event.mapUrl ?? "",
         rsvpDeadline: dl ? `${dl.year}-${pad(dl.month)}-${pad(dl.day)}` : "", allowMaybe: event.allowMaybe, wishesEnabled: event.wishesEnabled, isPublic: event.isPublic,

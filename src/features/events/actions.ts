@@ -39,6 +39,7 @@ const CreateSchema = z.object({
   mapUrl: z.string().trim().max(500).refine((v) => v === "" || /^https:\/\//.test(v), "https only").default(""),
   template: z.string().max(80),
   message: z.string().trim().max(2000).default(""),
+  organizerNotes: z.string().trim().max(2000).default(""),
   locale: z.enum(["km", "en"]).default("km"),
   agenda: z.array(z.object({
     time: Time,
@@ -109,7 +110,8 @@ export async function createEventAction(input: z.input<typeof CreateSchema>, med
     if (image && storageKey) await putObject(storageKey, image);
     await db.transaction(async (tx) => {
       await tx.insert(schema.events).values({
-        id: eventId, ownerId: user.id, type: v.type, title: v.title, timezone: v.timezone, startsAt, endsAt,
+        id: eventId, ownerId: user.id, type: v.type, title: v.title, organizerNotes: v.organizerNotes || null,
+        timezone: v.timezone, startsAt, endsAt,
         venueName: v.venueName || null, venueAddress: v.venueAddress || null, mapUrl: v.mapUrl || null,
         templateSlug: tpl.slug, templateVersion: tpl.version, draft: doc,
       });
@@ -216,6 +218,7 @@ export async function restoreVersionAction(eventId: string, versionId: string): 
 
 const SettingsSchema = z.object({
   title: z.string().trim().min(1).max(160),
+  organizerNotes: z.string().trim().max(2000).optional(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   startTime: z.string().regex(/^\d{2}:\d{2}$/),
   endTime: z.string().regex(/^(\d{2}:\d{2})?$/),
@@ -238,6 +241,7 @@ export async function updateEventSettingsAction(eventId: string, input: z.input<
     .update(schema.events)
     .set({
       title: v.title, timezone: v.timezone,
+      ...(v.organizerNotes !== undefined ? { organizerNotes: v.organizerNotes || null } : {}),
       startsAt: zonedToUtc(v.date, v.startTime, v.timezone),
       endsAt: v.endTime ? zonedToUtc(v.date, v.endTime, v.timezone) : null,
       venueName: v.venueName || null, venueAddress: v.venueAddress || null, mapUrl: v.mapUrl || null,

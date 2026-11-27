@@ -5,6 +5,8 @@ import { TemplatePreviewShell } from "@/components/marketing/template-preview-sh
 import { getI18n } from "@/i18n/server";
 import type { Metadata } from "next";
 
+export const dynamic = "force-dynamic";
+
 export function generateStaticParams() {
   return TEMPLATES.map((t) => ({ slug: t.slug }));
 }
