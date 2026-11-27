@@ -1040,7 +1040,9 @@ function GallerySection({ s, ctx }: { s: Extract<Section, { type: "gallery" }>; 
     const strip = stripRef.current;
     if (!strip) return;
     const btn = strip.children[active] as HTMLElement | undefined;
-    btn?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    if (!btn) return;
+    const left = btn.offsetLeft - strip.clientWidth / 2 + btn.clientWidth / 2;
+    strip.scrollTo({ left: Math.max(0, left), behavior: "smooth" });
   }, [active]);
 
   useEffect(() => {
