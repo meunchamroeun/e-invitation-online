@@ -1057,6 +1057,7 @@ function GallerySection({ s, ctx }: { s: Extract<Section, { type: "gallery" }>; 
   }, [open, photos.length]);
   const [touchX, setTouchX] = useState<number | null>(null);
   const [slideTouchX, setSlideTouchX] = useState<number | null>(null);
+  const layout = s.data.layout ?? "slider";
   const videoSrc = s.data.video && !s.data.video.startsWith("placeholder:") ? s.data.video : "";
   if (!photos.length && !videoSrc) return null;
   const safeActive = photos.length ? active % photos.length : 0;
@@ -1084,7 +1085,113 @@ function GallerySection({ s, ctx }: { s: Extract<Section, { type: "gallery" }>; 
           </div>
         </Reveal>
       ) : null}
-      {photos.length ? (
+      {photos.length && layout === "cards" ? (
+        <Reveal>
+          <div className="mx-auto max-w-sm">
+            <div className="relative mx-auto aspect-[3/4] w-full max-w-[320px]">
+              {photos.slice(0, 5).map((_, offset) => {
+                const idx = (safeActive + offset) % photos.length;
+                const p = photos[idx];
+                const isFront = offset === 0;
+                return (
+                  <motion.button
+                    key={idx}
+                    type="button"
+                    onClick={() => (isFront ? setOpen(idx) : goTo(idx))}
+                    animate={{
+                      scale: 1 - offset * 0.05,
+                      y: offset * 10,
+                      x: offset * 6,
+                      rotate: offset === 0 ? 0 : offset % 2 === 1 ? 2.5 : -2.5,
+                      zIndex: 10 - offset,
+                      opacity: Math.max(0.45, 1 - offset * 0.16),
+                    }}
+                    transition={{ type: "spring", stiffness: 280, damping: 24 }}
+                    className="absolute inset-0 overflow-hidden rounded-[1.5rem] bg-white shadow-2xl"
+                    style={{ border: "1px solid color-mix(in oklab, var(--inv-accent) 45%, transparent)" }}
+                    aria-label={`Photo ${idx + 1}`}
+                  >
+                    <Photo src={p.src} alt={ctx.tx(p.caption) || `Photo ${idx + 1}`} kenBurns={isFront} />
+                  </motion.button>
+                );
+              })}
+            </div>
+            {loop ? (
+              <div className="mt-8 flex items-center justify-center gap-4">
+                <button type="button" onClick={() => goTo(safeActive - 1)} className="rounded-full border border-black/10 bg-white/80 p-2.5 shadow-sm backdrop-blur transition-transform hover:scale-110" aria-label="Previous"><ChevronLeft className="h-4 w-4" /></button>
+                <span className="num text-xs font-semibold opacity-75">{num(safeActive + 1, ctx.locale, ctx.khNum)} / {num(photos.length, ctx.locale, ctx.khNum)}</span>
+                <button type="button" onClick={() => goTo(safeActive + 1)} className="rounded-full border border-black/10 bg-white/80 p-2.5 shadow-sm backdrop-blur transition-transform hover:scale-110" aria-label="Next"><ChevronRight className="h-4 w-4" /></button>
+              </div>
+            ) : null}
+          </div>
+        </Reveal>
+      ) : photos.length && layout === "marquee" ? (
+        <Reveal>
+          <div className="mx-auto max-w-2xl overflow-hidden py-2">
+            <motion.div
+              className="flex w-max gap-3"
+              animate={{ x: ["0%", "-50%"] }}
+              transition={{ duration: Math.max(18, photos.length * 2.5), ease: "linear", repeat: Infinity }}
+            >
+              {[...photos, ...photos].map((p, i) => {
+                const idx = i % photos.length;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setOpen(idx)}
+                    className="group relative h-64 w-48 shrink-0 overflow-hidden rounded-2xl shadow-lg sm:h-72 sm:w-56"
+                    style={{ border: "1px solid color-mix(in oklab, var(--inv-accent) 40%, transparent)" }}
+                    aria-label={`Photo ${idx + 1}`}
+                  >
+                    <Photo src={p.src} alt={ctx.tx(p.caption) || `Photo ${idx + 1}`} className="transition-transform duration-500 group-hover:scale-105" />
+                  </button>
+                );
+              })}
+            </motion.div>
+          </div>
+        </Reveal>
+      ) : photos.length && layout === "masonry" ? (
+        <Reveal>
+          <div className="mx-auto grid max-w-2xl grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
+            {photos.map((p, i) => (
+              <motion.button
+                key={i}
+                type="button"
+                whileHover={{ y: -4 }}
+                transition={{ duration: 0.2 }}
+                onClick={() => setOpen(i)}
+                className={`group relative overflow-hidden rounded-2xl shadow-md ${i % 5 === 0 ? "col-span-2 aspect-[16/10] sm:col-span-2 sm:aspect-[16/10]" : "aspect-[3/4]"}`}
+                style={{ border: "1px solid color-mix(in oklab, var(--inv-accent) 35%, transparent)" }}
+                aria-label={`Photo ${i + 1}`}
+              >
+                <Photo src={p.src} alt={ctx.tx(p.caption) || `Photo ${i + 1}`} className="transition-transform duration-500 group-hover:scale-105" />
+              </motion.button>
+            ))}
+          </div>
+        </Reveal>
+      ) : photos.length && layout === "polaroid" ? (
+        <Reveal>
+          <div className="mx-auto grid max-w-2xl grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-5">
+            {photos.map((p, i) => (
+              <motion.button
+                key={i}
+                type="button"
+                whileHover={{ rotate: 0, scale: 1.04, zIndex: 10 }}
+                onClick={() => setOpen(i)}
+                className="relative bg-white p-2 pb-7 text-left shadow-xl transition-shadow hover:shadow-2xl"
+                style={{ transform: `rotate(${i % 2 === 0 ? -2.2 : 2.2}deg)` }}
+                aria-label={`Photo ${i + 1}`}
+              >
+                <div className="aspect-[3/4] overflow-hidden bg-black/5">
+                  <Photo src={p.src} alt={ctx.tx(p.caption) || `Photo ${i + 1}`} />
+                </div>
+                {ctx.tx(p.caption) ? <p className="mt-2 truncate text-center text-xs text-neutral-600">{ctx.tx(p.caption)}</p> : null}
+              </motion.button>
+            ))}
+          </div>
+        </Reveal>
+      ) : photos.length ? (
       <Reveal>
         <div className="mx-auto max-w-md">
           {/* Main Showcase Stage */}

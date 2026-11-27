@@ -339,10 +339,39 @@ export function SectionEditor({ s, c, update }: { s: Section; c: EditorCtx; upda
             )} />
         </Group>
       );
-    case "gallery":
+    case "gallery": {
+      const layout = s.data.layout ?? "slider";
+      const galleryStyles = [
+        { id: "slider", km: "ស្លាយទំនើប", en: "Modern Slider" },
+        { id: "cards", km: "កាត 3D", en: "3D Card Deck" },
+        { id: "marquee", km: "រំកិលជាប់", en: "Flowing Marquee" },
+        { id: "masonry", km: "ក្រឡា Bento", en: "Bento Grid" },
+        { id: "polaroid", km: "ប៉ូឡារ៉ូអ៊ីត", en: "Polaroid" },
+      ] as const;
       return (
         <Group title={title}>
           <LInput k={`${k}.heading`} label={T(c, "ចំណងជើង", "Heading")} value={s.data.heading} onChange={(v) => set({ heading: v }, "heading")} />
+          <div>
+            <p className="mb-1.5 text-[13px] font-medium text-ink-2">{T(c, "រចនាបថបង្ហាញរូបភាព", "Gallery Style")}</p>
+            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+              {galleryStyles.map((st) => {
+                const on = layout === st.id;
+                return (
+                  <button
+                    key={st.id}
+                    type="button"
+                    onClick={() => set({ layout: st.id }, "layout")}
+                    className={cn(
+                      "rounded-xl border px-2.5 py-2 text-left text-xs font-medium transition-all",
+                      on ? "border-gold bg-gold-soft/50 text-ink shadow-sm ring-1 ring-gold/40" : "border-line-2 bg-white text-ink-2 hover:border-ink/30",
+                    )}
+                  >
+                    {T(c, st.km, st.en)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <MediaPicker c={c} purpose="video" label={T(c, "វីដេអូ (លេងស្វ័យប្រវត្តិ គ្មានសំឡេង)", "Video (autoplay muted)")} value={s.data.video ?? ""} onChange={(v) => set({ video: v }, "video")} />
           <BulkPhotos c={c} onAdd={(urls) => set({ photos: [...s.data.photos.filter((p) => !p.src.startsWith("placeholder:")), ...urls.map((u) => ({ src: u, caption: e() }))].slice(0, 60) }, "photos-bulk")} />
           <ListEditor c={c} max={60} items={s.data.photos} onChange={(v) => set({ photos: v }, "photos")} addLabel={T(c, "បន្ថែមរូបថត", "Add photo")}
@@ -355,6 +384,7 @@ export function SectionEditor({ s, c, update }: { s: Section; c: EditorCtx; upda
             )} />
         </Group>
       );
+    }
     case "gift": {
       const locked = c.giftLocked || !c.canEditGift;
       return (

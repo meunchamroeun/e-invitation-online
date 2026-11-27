@@ -64,7 +64,12 @@ export const SectionSchema = z.discriminatedUnion("type", [
   z.object({
     ...base,
     type: z.literal("gallery"),
-    data: z.object({ heading: L, video: MediaRef.optional(), photos: z.array(z.object({ src: MediaRef, caption: L })).max(60) }),
+    data: z.object({
+      heading: L,
+      layout: z.enum(["slider", "cards", "marquee", "masonry", "polaroid"]).optional(),
+      video: MediaRef.optional(),
+      photos: z.array(z.object({ src: MediaRef, caption: L })).max(60),
+    }),
   }),
   z.object({
     ...base,
