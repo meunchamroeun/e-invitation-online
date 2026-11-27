@@ -89,7 +89,8 @@ export async function createEventAction(input: z.input<typeof CreateSchema>, med
   let image: Buffer | undefined;
   if (file != null) {
     if (!(file instanceof File) || !file.size) return { ok: false, error: "invalid_cover" };
-    if (file.size > 8 * 1024 * 1024) return { ok: false, error: "cover_too_large" };
+    const envMax = Number(process.env.MAX_UPLOAD_MB || 0);
+    if (envMax > 0 && file.size > envMax * 1024 * 1024) return { ok: false, error: "cover_too_large" };
     const bytes = Buffer.from(await file.arrayBuffer());
     if (sniff(bytes)?.kind !== "image") return { ok: false, error: "invalid_cover" };
     try {

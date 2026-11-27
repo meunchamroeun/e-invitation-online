@@ -13,8 +13,29 @@ import { toKhmerDigits, zonedParts } from "@/i18n/format";
 import { cn } from "@/lib/utils";
 
 const STORAGE = "ei:wizard:v1";
-const COVER_LIMIT = 8 * 1024 * 1024;
 const COVER_TYPES = "image/jpeg,image/png,image/webp,image/gif";
+
+async function prepareCoverFile(f: File): Promise<File> {
+  if (f.type === "image/gif" || f.size <= 3.5 * 1024 * 1024) return f;
+  try {
+    const bmp = await createImageBitmap(f);
+    const scale = Math.min(1, 2000 / Math.max(bmp.width, bmp.height));
+    const w = Math.max(1, Math.round(bmp.width * scale));
+    const h = Math.max(1, Math.round(bmp.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) { bmp.close(); return f; }
+    ctx.drawImage(bmp, 0, 0, w, h);
+    bmp.close();
+    const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/webp", 0.85));
+    if (!blob || blob.size >= f.size) return f;
+    return new File([blob], f.name.replace(/\.[^.]+$/, "") + ".webp", { type: "image/webp" });
+  } catch {
+    return f;
+  }
+}
 const AGENDA_LIMIT = 30;
 const COUPLE_TYPES = new Set<EventType>(["wedding", "engagement", "anniversary"]);
 
@@ -53,7 +74,7 @@ const COPY = {
   removeActivity: { km: "លុបសកម្មភាព", en: "Remove activity" },
   cover: { km: "រូបភាពសម្រាប់តំណធៀប", en: "Link preview cover" },
   coverHelp: { km: "បង្ហាញនៅពេលចែករំលែកតំណធៀប។", en: "Appears when you share the invitation link." },
-  coverFormats: { km: "JPG, PNG, WebP ឬ GIF រហូតដល់ ៨ MB", en: "JPG, PNG, WebP, or GIF up to 8 MB" },
+  coverFormats: { km: "JPG, PNG, WebP ឬ GIF (គ្មានដែនកំណត់ទំហំ)", en: "JPG, PNG, WebP, or GIF (any size)" },
   coverAlt: { km: "រូបភាពតំណធៀបដែលបានជ្រើសរើស", en: "Selected link preview cover" },
   upload: { km: "ជ្រើសរើសរូបភាព", en: "Choose an image" },
   replace: { km: "ប្ដូររូបភាព", en: "Replace image" },
@@ -226,15 +247,15 @@ export function EventWizard({ locale, templates, initialTemplate }: {
     update({ type, template: preferredTemplate(templates, type) });
   }
 
-  function changeCover(file: File | undefined) {
+  async function changeCover(file: File | undefined) {
     if (inputCover.current) inputCover.current.value = "";
     if (!file) return;
-    if (file.size > COVER_LIMIT) return setCoverError(L(COPY.coverSize));
     if (!COVER_TYPES.split(",").includes(file.type) && (file.type || !/\.(jpe?g|png|webp|gif)$/i.test(file.name))) {
       return setCoverError(L(COPY.coverType));
     }
     setCoverError("");
-    setCover(file);
+    const prepared = await prepareCoverFile(file);
+    setCover(prepared);
   }
 
   function updateActivity(id: string, next: Partial<AgendaEntry>) {
