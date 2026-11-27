@@ -131,7 +131,7 @@ export async function createEventAction(input: z.input<typeof CreateSchema>, med
         eventId,
         fullName: "Honored Guest",
         khmerName: "ភ្ញៀវកិត្តិយស",
-        allowedAttendees: 2,
+        allowedAttendees: 0,
         tokenHash: sha256(guestTok),
         tokenEnc: encrypt(guestTok),
         tokenIssuedAt: new Date(),

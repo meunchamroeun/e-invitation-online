@@ -12,7 +12,8 @@ export function RsvpForm({ token, d, locale, allowed, allowMaybe, initial, deadl
   demo?: boolean;
 }) {
   const [status, setStatus] = useState(initial.status === "pending" ? "" : initial.status);
-  const [count, setCount] = useState(Math.max(1, Math.min(allowed, initial.count || 1)));
+  const maxAllowed = allowed >= 2 ? allowed : 10;
+  const [count, setCount] = useState(Math.max(1, Math.min(maxAllowed, initial.count || 1)));
   const [message, setMessage] = useState("");
   const [saved, setSaved] = useState<{ status: string; count: number; updatedAt: string } | null>(initial.status !== "pending" && initial.updatedAt ? { status: initial.status, count: initial.count, updatedAt: initial.updatedAt } : null);
   const [editing, setEditing] = useState(initial.status === "pending");
@@ -69,11 +70,11 @@ export function RsvpForm({ token, d, locale, allowed, allowMaybe, initial, deadl
       </div>
       {status === "attending" || status === "maybe" ? (
         <div className="flex items-center justify-between rounded-2xl px-4 py-3" style={{ background: "color-mix(in oklab, var(--inv-primary) 8%, transparent)" }}>
-          <span className="text-sm">{d.rsvpCount} <span style={{ color: "var(--inv-muted)" }}>({d.rsvpOf} {num(allowed, locale)})</span></span>
+          <span className="text-sm">{d.rsvpCount}{allowed >= 2 ? <> <span style={{ color: "var(--inv-muted)" }}>({d.rsvpOf} {num(allowed, locale)})</span></> : null}</span>
           <span className="flex items-center gap-3">
             <button type="button" aria-label="-" disabled={count <= 1} onClick={() => setCount(count - 1)} className="flex h-9 w-9 items-center justify-center rounded-full disabled:opacity-30" style={{ border: "1px solid var(--inv-primary)" }}><Minus className="h-4 w-4" /></button>
             <span className="num w-5 text-center text-lg">{num(count, locale)}</span>
-            <button type="button" aria-label="+" disabled={count >= allowed} onClick={() => setCount(count + 1)} className="flex h-9 w-9 items-center justify-center rounded-full disabled:opacity-30" style={{ border: "1px solid var(--inv-primary)" }}><Plus className="h-4 w-4" /></button>
+            <button type="button" aria-label="+" disabled={count >= maxAllowed} onClick={() => setCount(count + 1)} className="flex h-9 w-9 items-center justify-center rounded-full disabled:opacity-30" style={{ border: "1px solid var(--inv-primary)" }}><Plus className="h-4 w-4" /></button>
           </span>
         </div>
       ) : null}

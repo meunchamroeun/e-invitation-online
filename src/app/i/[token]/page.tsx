@@ -12,14 +12,18 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
   const data = await loadGuestInvitation((await params).token);
-  // Never put the guest's name in titles/previews — links get forwarded and previewed by chat apps.
+  const guestLabel = data ? [data.guest.honorific, data.guest.name].filter(Boolean).join(" ") : "";
+  const inviteLine = data
+    ? `${data.doc.defaultLocale === "en" ? "We cordially invite" : "សូមគោរពអញ្ជើញ"} ${guestLabel}`
+    : "";
+  const desc = [inviteLine, data?.event.venueName].filter(Boolean).join(" · ") || undefined;
   return {
-    title: data ? data.event.title : "Invitation",
+    title: data ? `${data.event.title} · ${guestLabel}` : "Invitation",
     robots: { index: false, follow: false },
     referrer: "no-referrer",
     openGraph: data ? {
       title: data.event.title,
-      description: data.event.venueName ?? undefined,
+      description: desc,
       images: data.doc.shareImage?.startsWith("/api/media/") ? [data.doc.shareImage] : undefined,
     } : undefined,
   };

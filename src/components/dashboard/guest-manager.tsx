@@ -103,7 +103,7 @@ export function GuestManager({ eventId, eventTitle, published, guests, groups, c
             <Button
               variant="outline"
               disabled={pending}
-              onClick={() => run(() => addGuestAction(eventId, { fullName: "Honored Guest", khmerName: "ភ្ញៀវកិត្តិយស", allowedAttendees: 2 }), L("បានបន្ថែម ភ្ញៀវកិត្តិយស ✓", "Added Honored Guest ✓"))}
+              onClick={() => run(() => addGuestAction(eventId, { fullName: "Honored Guest", khmerName: "ភ្ញៀវកិត្តិយស", allowedAttendees: 0 }), L("បានបន្ថែម ភ្ញៀវកិត្តិយស ✓", "Added Honored Guest ✓"))}
             >
               <Plus className="h-4 w-4" />{L("ភ្ញៀវកិត្តិយស", "Honored Guest")}
             </Button>
@@ -128,7 +128,7 @@ export function GuestManager({ eventId, eventTitle, published, guests, groups, c
 
       {!guests.length ? (
         <EmptyState icon={<Users className="h-10 w-10" />} title={L("មិនទាន់មានភ្ញៀវ", "No guests yet")} body={L("បន្ថែមម្ដងម្នាក់ ឬនាំចូលពីឯកសារ CSV / Excel (រក្សាទុកជា CSV)", "Add guests one by one, or import a CSV (save Excel as CSV)")}
-          action={canEdit ? <div className="flex flex-wrap justify-center gap-2"><Button variant="outline" onClick={() => setImportOpen(true)}>{L("នាំចូល CSV", "Import CSV")}</Button><Button variant="outline" disabled={pending} onClick={() => run(() => addGuestAction(eventId, { fullName: "Honored Guest", khmerName: "ភ្ញៀវកិត្តិយស", allowedAttendees: 2 }), L("បានបន្ថែម ភ្ញៀវកិត្តិយស ✓", "Added Honored Guest ✓"))}><Plus className="h-4 w-4" />{L("ភ្ញៀវកិត្តិយស", "Honored Guest")}</Button><Button onClick={() => setEditing("new")}>{L("បន្ថែមភ្ញៀវ", "Add guest")}</Button></div> : undefined} />
+          action={canEdit ? <div className="flex flex-wrap justify-center gap-2"><Button variant="outline" onClick={() => setImportOpen(true)}>{L("នាំចូល CSV", "Import CSV")}</Button><Button variant="outline" disabled={pending} onClick={() => run(() => addGuestAction(eventId, { fullName: "Honored Guest", khmerName: "ភ្ញៀវកិត្តិយស", allowedAttendees: 0 }), L("បានបន្ថែម ភ្ញៀវកិត្តិយស ✓", "Added Honored Guest ✓"))}><Plus className="h-4 w-4" />{L("ភ្ញៀវកិត្តិយស", "Honored Guest")}</Button><Button onClick={() => setEditing("new")}>{L("បន្ថែមភ្ញៀវ", "Add guest")}</Button></div> : undefined} />
       ) : (
         <div className="overflow-hidden rounded-2xl border border-line bg-white">
           <table className="w-full text-sm">
@@ -160,7 +160,7 @@ export function GuestManager({ eventId, eventTitle, published, guests, groups, c
                     <Badge tone={STATUS[g.rsvpStatus]?.tone ?? "neutral"}>{STATUS[g.rsvpStatus]?.label ?? g.rsvpStatus}</Badge>
                     {g.viewed && g.rsvpStatus === "pending" ? <span className="ml-1 text-[11px] text-muted">{L("បានបើក", "opened")}</span> : null}
                   </td>
-                  <td className="num text-center text-xs md:px-2 md:py-3">{g.rsvpStatus === "attending" ? <b>{g.attendeeCount}</b> : "–"}/{g.allowedAttendees}</td>
+                  <td className="num text-center text-xs md:px-2 md:py-3">{g.rsvpStatus === "attending" ? <b>{g.attendeeCount}</b> : "–"}{g.allowedAttendees >= 2 ? `/${g.allowedAttendees}` : ""}</td>
                   <td className="md:px-2 md:py-3">
                     {g.link ? (
                       <div className="flex gap-1">
@@ -228,7 +228,7 @@ export function GuestManager({ eventId, eventTitle, published, guests, groups, c
 function GuestDialog({ L, groups, initial, onSave, onClose, pending, onAddGroup }: { L: (a: string, b: string) => string; groups: { id: string; name: string }[]; initial: GuestRow | null; onSave: (v: GuestInput) => void; onClose: () => void; pending: boolean; onAddGroup: (n: string) => void }) {
   const [v, setV] = useState<GuestInput>({
     fullName: initial?.fullName ?? "", khmerName: initial?.khmerName ?? "", honorific: initial?.honorific ?? "លោក", phone: initial?.phone ?? "", email: initial?.email ?? "",
-    groupId: initial?.groupId ?? "", allowedAttendees: initial?.allowedAttendees ?? 1, notes: initial?.notes ?? "",
+    groupId: initial?.groupId ?? "", allowedAttendees: initial?.allowedAttendees ?? 0, notes: initial?.notes ?? "",
   });
   const up = (p: Partial<GuestInput>) => setV((x) => ({ ...x, ...p }));
   const [newGroup, setNewGroup] = useState("");
@@ -244,7 +244,7 @@ function GuestDialog({ L, groups, initial, onSave, onClose, pending, onAddGroup 
         <Field label={L("ឈ្មោះជាអក្សរខ្មែរ (បង្ហាញលើធៀប)", "Khmer name (shown on invitation)")} htmlFor="g-k"><Input id="g-k" lang="km" maxLength={160} value={v.khmerName} onChange={(e) => up({ khmerName: e.target.value })} /></Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label={L("ទូរស័ព្ទ", "Phone")} htmlFor="g-p"><Input id="g-p" type="tel" maxLength={40} value={v.phone} onChange={(e) => up({ phone: e.target.value })} /></Field>
-          <Field label={L("ចំនួនអនុញ្ញាត", "Allowed guests")} htmlFor="g-a"><Input id="g-a" type="number" min={1} max={50} value={Number(v.allowedAttendees ?? 1)} onChange={(e) => up({ allowedAttendees: Number(e.target.value) })} /></Field>
+          <Field label={L("ចំនួនអនុញ្ញាត", "Allowed guests")} htmlFor="g-a"><Input id="g-a" type="number" min={0} max={50} value={Number(v.allowedAttendees ?? 0)} onChange={(e) => up({ allowedAttendees: Number(e.target.value) })} /></Field>
         </div>
         <Field label={L("ក្រុម", "Group")} htmlFor="g-g">
           <div className="flex gap-2">

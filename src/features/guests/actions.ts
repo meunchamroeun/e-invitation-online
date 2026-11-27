@@ -18,7 +18,7 @@ const GuestSchema = z.object({
   phone: z.string().trim().max(40).default(""),
   email: z.string().trim().max(200).refine((v) => v === "" || z.string().email().safeParse(v).success, "email").default(""),
   groupId: z.string().uuid().nullable().or(z.literal("")).default(""),
-  allowedAttendees: z.coerce.number().int().min(1).max(50).default(1),
+  allowedAttendees: z.coerce.number().int().min(0).max(50).default(0),
   notes: z.string().trim().max(1000).default(""),
 });
 export type GuestInput = z.input<typeof GuestSchema>;
