@@ -6,6 +6,12 @@ import { createSession } from "@/lib/auth/session";
 import { audit } from "@/lib/audit";
 import { appUrl } from "@/features/guests/links";
 
+function requestOrigin(req: NextRequest): string {
+  const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
+  const proto = req.headers.get("x-forwarded-proto") || req.nextUrl.protocol.replace(":", "") || "https";
+  return host ? `${proto}://${host}` : appUrl();
+}
+
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
   const state = req.nextUrl.searchParams.get("state");
@@ -36,7 +42,7 @@ export async function GET(req: NextRequest) {
       code,
       client_id: clientId,
       client_secret: clientSecret,
-      redirect_uri: `${appUrl()}/api/auth/google/callback`,
+      redirect_uri: `${requestOrigin(req)}/api/auth/google/callback`,
       grant_type: "authorization_code",
     }),
   });

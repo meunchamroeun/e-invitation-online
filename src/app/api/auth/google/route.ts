@@ -3,6 +3,12 @@ import { cookies } from "next/headers";
 import crypto from "node:crypto";
 import { appUrl } from "@/features/guests/links";
 
+function requestOrigin(req: NextRequest): string {
+  const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
+  const proto = req.headers.get("x-forwarded-proto") || req.nextUrl.protocol.replace(":", "") || "https";
+  return host ? `${proto}://${host}` : appUrl();
+}
+
 export async function GET(req: NextRequest) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const next = req.nextUrl.searchParams.get("next") ?? "/dashboard";
@@ -21,7 +27,7 @@ export async function GET(req: NextRequest) {
   });
   const params = new URLSearchParams({
     client_id: clientId,
-    redirect_uri: `${appUrl()}/api/auth/google/callback`,
+    redirect_uri: `${requestOrigin(req)}/api/auth/google/callback`,
     response_type: "code",
     scope: "openid email profile",
     state,
