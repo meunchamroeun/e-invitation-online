@@ -16,7 +16,9 @@ const STYLES: Record<string, { km: string; en: string }> = {
 };
 const COLORS: Record<string, string> = { red: "#8E1B1B", gold: "#B68A45", ivory: "#EFE4D0", navy: "#16213F", pink: "#E7B9B5", green: "#1F5A45", black: "#111", brown: "#7B4A1E", white: "#fff", saffron: "#D98B1E", purple: "#6F427F" };
 
-export function TemplateMarket({ items, locale, t, initialType }: { items: MarketTemplate[]; locale: "km" | "en"; t: Dictionary["templates"]; initialType: string }) {
+export function TemplateMarket({ items, locale, t, initialType, inDashboard = false }: {
+  items: MarketTemplate[]; locale: "km" | "en"; t: Dictionary["templates"]; initialType: string; inDashboard?: boolean;
+}) {
   const [q, setQ] = useState("");
   const [type, setType] = useState(initialType);
   const [style, setStyle] = useState("all");
@@ -27,6 +29,11 @@ export function TemplateMarket({ items, locale, t, initialType }: { items: Marke
   const L = (x: { km: string; en: string }) => (locale === "km" ? x.km : x.en);
 
   const types = useMemo(() => EVENT_TYPES.filter((e) => items.some((i) => i.category === e.value)), [items]);
+  const countsByType = useMemo(() => {
+    const map: Record<string, number> = { all: items.length };
+    for (const i of items) map[i.category] = (map[i.category] ?? 0) + 1;
+    return map;
+  }, [items]);
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
     return items
@@ -40,27 +47,55 @@ export function TemplateMarket({ items, locale, t, initialType }: { items: Marke
   const active = [style, color, tier].filter((x) => x !== "all").length + (type !== "all" ? 1 : 0) + (q ? 1 : 0);
   const reset = () => { setQ(""); setType("all"); setStyle("all"); setColor("all"); setTier("all"); };
 
-  const chip = (on: boolean) => cn("shrink-0 rounded-full border px-3.5 py-1.5 text-sm transition-colors", on ? "border-ink bg-ink text-white" : "border-line-2 bg-white text-ink-2 hover:border-ink/40");
+  const chip = (on: boolean) => cn(
+    "shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all",
+    on ? "border-ink bg-ink text-white shadow-sm" : "border-line-2 bg-white text-ink-2 hover:border-ink/40",
+  );
+  const tabBtn = (on: boolean) => cn(
+    "flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-3.5 py-2 text-sm font-medium transition-all lg:flex-1",
+    on
+      ? "bg-white text-ink shadow-sm ring-1 ring-black/5"
+      : "text-ink-2 hover:bg-white/60 hover:text-ink",
+  );
+  const previewTarget = inDashboard ? { target: "_blank", rel: "noopener noreferrer" } : {};
 
   return (
     <div>
-      <div className="sticky top-16 z-30 -mx-5 border-b border-line bg-paper/90 px-5 py-3 backdrop-blur sm:mx-0 sm:rounded-2xl sm:border sm:px-3">
+      <div className={cn("min-w-0 bg-paper/95 py-3", inDashboard
+        ? "rounded-2xl border border-line-2 px-3"
+        : "sticky top-16 z-30 -mx-4 border-b border-line px-4 backdrop-blur sm:mx-0 sm:rounded-2xl sm:border sm:px-4")}>
         <div className="flex items-center gap-2">
-          <div className="relative flex-1">
+          <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t.search} aria-label={t.search} className="h-11 w-full rounded-full border border-line-2 bg-white pl-10 pr-4 text-[15px] focus:border-gold focus:outline-none focus:ring-4 focus:ring-gold/15" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t.search} aria-label={t.search} className="h-11 w-full rounded-xl border border-line-2 bg-white pl-10 pr-4 text-[15px] focus:border-gold focus:outline-none focus:ring-4 focus:ring-gold/15" />
           </div>
-          <button onClick={() => setFiltersOpen(!filtersOpen)} className={cn(buttonClass("outline", "md"), "h-11")} aria-expanded={filtersOpen}>
+          <button onClick={() => setFiltersOpen(!filtersOpen)} className={cn(buttonClass("outline", "md"), "h-11 rounded-xl")} aria-label={t.filterStyle} aria-expanded={filtersOpen}>
             <SlidersHorizontal className="h-4 w-4" /><span className="hidden sm:inline">{t.filterStyle}</span>{active ? <Badge tone="dark" className="!px-1.5">{active}</Badge> : null}
           </button>
-          <select value={sort} onChange={(e) => setSort(e.target.value as "popular" | "new")} aria-label={t.sort} className="hidden h-11 rounded-full border border-line-2 bg-white px-4 text-sm sm:block">
+          <select value={sort} onChange={(e) => setSort(e.target.value as "popular" | "new")} aria-label={t.sort} className="hidden h-11 rounded-xl border border-line-2 bg-white px-4 text-sm sm:block">
             <option value="popular">{t.sortPopular}</option>
             <option value="new">{t.sortNew}</option>
           </select>
         </div>
-        <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
-          <button className={chip(type === "all")} onClick={() => setType("all")}>{t.all}</button>
-          {types.map((e) => <button key={e.value} className={chip(type === e.value)} onClick={() => setType(e.value)}>{L(e.label)}</button>)}
+        <div
+          role="tablist"
+          aria-label={t.all}
+          className="mt-3 flex w-full items-center gap-1 overflow-x-auto rounded-2xl bg-[#efeae1] p-1 [scrollbar-width:none]"
+        >
+          <button role="tab" aria-selected={type === "all"} className={tabBtn(type === "all")} onClick={() => setType("all")}>
+            <span>{t.all}</span>
+            <span className={cn("rounded-full px-1.5 py-0.5 text-[11px] tabular-nums", type === "all" ? "bg-ink/10 text-ink" : "bg-black/5 text-muted")}>
+              {countsByType.all}
+            </span>
+          </button>
+          {types.map((e) => (
+            <button key={e.value} role="tab" aria-selected={type === e.value} className={tabBtn(type === e.value)} onClick={() => setType(e.value)}>
+              <span>{L(e.label)}</span>
+              <span className={cn("rounded-full px-1.5 py-0.5 text-[11px] tabular-nums", type === e.value ? "bg-ink/10 text-ink" : "bg-black/5 text-muted")}>
+                {countsByType[e.value] ?? 0}
+              </span>
+            </button>
+          ))}
         </div>
         {filtersOpen ? (
           <div className="mt-3 grid gap-4 border-t border-line pt-4 sm:grid-cols-3">
@@ -96,27 +131,27 @@ export function TemplateMarket({ items, locale, t, initialType }: { items: Marke
       </div>
 
       {filtered.length ? (
-        <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-6 md:grid-cols-3 lg:grid-cols-4">
+        <div className={cn("mt-4 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 sm:gap-x-5 lg:grid-cols-4 xl:grid-cols-5", inDashboard && "gap-x-3 2xl:grid-cols-6")}>
           {filtered.map((it) => (
-            <article key={it.slug} className="group">
+            <article key={it.slug} className="group min-w-0">
               <div className="relative overflow-hidden rounded-[1.4rem] border border-line bg-white p-1.5 shadow-soft transition-[transform,box-shadow] duration-500 group-hover:-translate-y-1 group-hover:shadow-lift">
-                <Link href={`/templates/${it.slug}`} className="block overflow-hidden rounded-[1.05rem]" aria-label={`${t.preview}: ${L(it.name)}`}>
+                <Link href={`/templates/${it.slug}`} {...previewTarget} className="block overflow-hidden rounded-[1.05rem]" aria-label={`${t.preview}: ${L(it.name)}`}>
                   <ThumbFill slug={it.slug} locale={locale} />
                 </Link>
                 <div className="absolute left-3 top-3 flex gap-1">
                   {it.tier === "premium" ? <Badge tone="dark">★ {t.premium}</Badge> : <Badge className="bg-white/90">{t.free}</Badge>}
                 </div>
-                <div className="pointer-events-none absolute inset-x-1.5 bottom-1.5 hidden translate-y-2 gap-2 rounded-b-[1.05rem] bg-gradient-to-t from-black/60 to-transparent p-3 pt-10 opacity-0 transition-all duration-300 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 md:flex">
+                {!inDashboard ? <div className="pointer-events-none absolute inset-x-1.5 bottom-1.5 hidden translate-y-2 gap-2 rounded-b-[1.05rem] bg-gradient-to-t from-black/60 to-transparent p-3 pt-10 opacity-0 transition-all duration-300 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100 md:flex">
                   <Link href={`/templates/${it.slug}`} className={cn(buttonClass("outline", "sm"), "flex-1")}><Eye className="h-3.5 w-3.5" />{t.preview}</Link>
                   <Link href={`/dashboard/events/new?template=${it.slug}`} className={cn(buttonClass("gold", "sm"), "flex-1")}>{t.use}</Link>
-                </div>
+                </div> : null}
               </div>
               <div className="mt-3 px-1">
-                <h3 className="text-[15px] font-semibold">{L(it.name)}</h3>
+                <h3 className="text-[15px] font-semibold [overflow-wrap:anywhere]">{L(it.name)}</h3>
                 <p className="line-clamp-2 text-xs leading-6 text-muted">{L(it.description)}</p>
-                <div className="mt-2 flex gap-2 md:hidden">
-                  <Link href={`/templates/${it.slug}`} className={cn(buttonClass("outline", "sm"), "flex-1 px-2")}>{t.preview}</Link>
-                  <Link href={`/dashboard/events/new?template=${it.slug}`} className={cn(buttonClass("primary", "sm"), "flex-1 px-2")}>{t.use}</Link>
+                <div className={cn("mt-2 flex gap-2", inDashboard ? "flex-col sm:flex-row sm:flex-wrap" : "md:hidden")}>
+                  <Link href={`/templates/${it.slug}`} {...previewTarget} className={cn(buttonClass("outline", "sm"), "flex-1 px-2", inDashboard && "h-auto min-h-9 whitespace-normal text-center")}>{t.preview}</Link>
+                  <Link href={`/dashboard/events/new?template=${it.slug}`} className={cn(buttonClass("primary", "sm"), "flex-1 px-2", inDashboard && "h-auto min-h-9 whitespace-normal text-center")}>{t.use}</Link>
                 </div>
               </div>
             </article>
@@ -144,7 +179,7 @@ function ThumbFill({ slug, locale }: { slug: string; locale: "km" | "en" }) {
     return () => ro.disconnect();
   }, []);
   return (
-    <div ref={ref} className="relative aspect-[1/2] w-full overflow-hidden">
+    <div ref={ref} className="relative aspect-[3/4] w-full overflow-hidden">
       <TemplateThumb slug={slug} locale={locale} width={w} />
     </div>
   );
