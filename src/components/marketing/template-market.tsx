@@ -3,11 +3,14 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Eye, Search, SlidersHorizontal, X } from "lucide-react";
+import { Tabs } from "@base-ui/react/tabs";
+import { motion } from "motion/react";
 import type { MarketTemplate } from "@/features/templates/queries";
 import { EVENT_TYPES } from "@/features/templates/registry";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { TemplateThumb } from "./template-thumb";
 import { Badge, buttonClass } from "@/components/ui";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const STYLES: Record<string, { km: string; en: string }> = {
@@ -52,10 +55,8 @@ export function TemplateMarket({ items, locale, t, initialType, inDashboard = fa
     on ? "border-ink bg-ink text-white shadow-sm" : "border-line-2 bg-white text-ink-2 hover:border-ink/40",
   );
   const tabBtn = (on: boolean) => cn(
-    "flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-3.5 py-2 text-sm font-medium transition-all lg:flex-1",
-    on
-      ? "bg-white text-ink shadow-sm ring-1 ring-black/5"
-      : "text-ink-2 hover:bg-white/60 hover:text-ink",
+    "relative z-10 flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-3.5 py-2 text-sm font-medium transition-colors lg:flex-1",
+    on ? "text-ink" : "text-ink-2 hover:text-ink",
   );
   const previewTarget = inDashboard ? { target: "_blank", rel: "noopener noreferrer" } : {};
 
@@ -69,34 +70,49 @@ export function TemplateMarket({ items, locale, t, initialType, inDashboard = fa
             <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t.search} aria-label={t.search} className="h-11 w-full rounded-xl border border-line-2 bg-white pl-10 pr-4 text-[15px] focus:border-gold focus:outline-none focus:ring-4 focus:ring-gold/15" />
           </div>
-          <button onClick={() => setFiltersOpen(!filtersOpen)} className={cn(buttonClass("outline", "md"), "h-11 rounded-xl")} aria-label={t.filterStyle} aria-expanded={filtersOpen}>
+          <Button variant="outline" onClick={() => setFiltersOpen(!filtersOpen)} className="h-11 rounded-xl border-line-2 bg-white px-4 text-ink" aria-label={t.filterStyle} aria-expanded={filtersOpen}>
             <SlidersHorizontal className="h-4 w-4" /><span className="hidden sm:inline">{t.filterStyle}</span>{active ? <Badge tone="dark" className="!px-1.5">{active}</Badge> : null}
-          </button>
+          </Button>
           <select value={sort} onChange={(e) => setSort(e.target.value as "popular" | "new")} aria-label={t.sort} className="hidden h-11 rounded-xl border border-line-2 bg-white px-4 text-sm sm:block">
             <option value="popular">{t.sortPopular}</option>
             <option value="new">{t.sortNew}</option>
           </select>
         </div>
-        <div
-          role="tablist"
-          aria-label={t.all}
-          className="mt-3 flex w-full items-center gap-1 overflow-x-auto rounded-2xl bg-[#efeae1] p-1 [scrollbar-width:none]"
-        >
-          <button role="tab" aria-selected={type === "all"} className={tabBtn(type === "all")} onClick={() => setType("all")}>
-            <span>{t.all}</span>
-            <span className={cn("rounded-full px-1.5 py-0.5 text-[11px] tabular-nums", type === "all" ? "bg-ink/10 text-ink" : "bg-black/5 text-muted")}>
-              {countsByType.all}
-            </span>
-          </button>
-          {types.map((e) => (
-            <button key={e.value} role="tab" aria-selected={type === e.value} className={tabBtn(type === e.value)} onClick={() => setType(e.value)}>
-              <span>{L(e.label)}</span>
-              <span className={cn("rounded-full px-1.5 py-0.5 text-[11px] tabular-nums", type === e.value ? "bg-ink/10 text-ink" : "bg-black/5 text-muted")}>
-                {countsByType[e.value] ?? 0}
+        <Tabs.Root value={type} onValueChange={(v) => setType(String(v))} className="mt-3">
+          <Tabs.List
+            aria-label={t.all}
+            className="flex w-full items-center gap-1 overflow-x-auto rounded-2xl bg-[#efeae1] p-1 [scrollbar-width:none]"
+          >
+            <Tabs.Tab value="all" className={tabBtn(type === "all")}>
+              {type === "all" ? (
+                <motion.span
+                  layoutId="market-tab-pill"
+                  transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                  className="absolute inset-0 -z-10 rounded-xl bg-white shadow-sm ring-1 ring-black/5"
+                />
+              ) : null}
+              <span>{t.all}</span>
+              <span className={cn("rounded-full px-1.5 py-0.5 text-[11px] tabular-nums", type === "all" ? "bg-ink/10 text-ink" : "bg-black/5 text-muted")}>
+                {countsByType.all}
               </span>
-            </button>
-          ))}
-        </div>
+            </Tabs.Tab>
+            {types.map((e) => (
+              <Tabs.Tab key={e.value} value={e.value} className={tabBtn(type === e.value)}>
+                {type === e.value ? (
+                  <motion.span
+                    layoutId="market-tab-pill"
+                    transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                    className="absolute inset-0 -z-10 rounded-xl bg-white shadow-sm ring-1 ring-black/5"
+                  />
+                ) : null}
+                <span>{L(e.label)}</span>
+                <span className={cn("rounded-full px-1.5 py-0.5 text-[11px] tabular-nums", type === e.value ? "bg-ink/10 text-ink" : "bg-black/5 text-muted")}>
+                  {countsByType[e.value] ?? 0}
+                </span>
+              </Tabs.Tab>
+            ))}
+          </Tabs.List>
+        </Tabs.Root>
         {filtersOpen ? (
           <div className="mt-3 grid gap-4 border-t border-line pt-4 sm:grid-cols-3">
             <div>
@@ -131,9 +147,16 @@ export function TemplateMarket({ items, locale, t, initialType, inDashboard = fa
       </div>
 
       {filtered.length ? (
-        <div className={cn("mt-4 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 sm:gap-x-5 lg:grid-cols-4 xl:grid-cols-5", inDashboard && "gap-x-3 2xl:grid-cols-6")}>
-          {filtered.map((it) => (
-            <article key={it.slug} className="group min-w-0">
+        <motion.div layout className={cn("mt-4 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 sm:gap-x-5 lg:grid-cols-4 xl:grid-cols-5", inDashboard && "gap-x-3 2xl:grid-cols-6")}>
+          {filtered.map((it, idx) => (
+            <motion.article
+              key={it.slug}
+              layout
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25, delay: Math.min(idx * 0.02, 0.2) }}
+              className="group min-w-0"
+            >
               <div className="relative overflow-hidden rounded-[1.4rem] border border-line bg-white p-1.5 shadow-soft transition-[transform,box-shadow] duration-500 group-hover:-translate-y-1 group-hover:shadow-lift">
                 <Link href={`/templates/${it.slug}`} {...previewTarget} className="block overflow-hidden rounded-[1.05rem]" aria-label={`${t.preview}: ${L(it.name)}`}>
                   <ThumbFill slug={it.slug} locale={locale} />
@@ -154,9 +177,9 @@ export function TemplateMarket({ items, locale, t, initialType, inDashboard = fa
                   <Link href={`/dashboard/events/new?template=${it.slug}`} className={cn(buttonClass("primary", "sm"), "flex-1 px-2", inDashboard && "h-auto min-h-9 whitespace-normal text-center")}>{t.use}</Link>
                 </div>
               </div>
-            </article>
+            </motion.article>
           ))}
-        </div>
+        </motion.div>
       ) : (
         <div className="mt-10 rounded-2xl border border-dashed border-line-2 p-12 text-center">
           <p className="text-muted">{t.none}</p>
