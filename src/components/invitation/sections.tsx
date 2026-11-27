@@ -1085,7 +1085,9 @@ function GallerySection({ s, ctx }: { s: Extract<Section, { type: "gallery" }>; 
           </div>
         </Reveal>
       ) : null}
+      <AnimatePresence mode="wait">
       {photos.length && layout === "cards" ? (
+        <motion.div key="cards" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}>
         <Reveal>
           <div className="mx-auto max-w-sm">
             <div className="relative mx-auto aspect-[3/4] w-full max-w-[320px]">
@@ -1125,7 +1127,9 @@ function GallerySection({ s, ctx }: { s: Extract<Section, { type: "gallery" }>; 
             ) : null}
           </div>
         </Reveal>
+        </motion.div>
       ) : photos.length && layout === "marquee" ? (
+        <motion.div key="marquee" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}>
         <Reveal>
           <div className="mx-auto max-w-2xl overflow-hidden py-2">
             <motion.div
@@ -1151,15 +1155,20 @@ function GallerySection({ s, ctx }: { s: Extract<Section, { type: "gallery" }>; 
             </motion.div>
           </div>
         </Reveal>
+        </motion.div>
       ) : photos.length && layout === "masonry" ? (
+        <motion.div key="masonry" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}>
         <Reveal>
           <div className="mx-auto grid max-w-2xl grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
             {photos.map((p, i) => (
               <motion.button
                 key={i}
                 type="button"
+                initial={{ opacity: 0, y: 16, scale: 0.96 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                viewport={{ once: true, amount: 0.15 }}
                 whileHover={{ y: -4 }}
-                transition={{ duration: 0.2 }}
+                transition={{ duration: 0.42, delay: Math.min((i % 6) * 0.05, 0.25), ease: [0.22, 1, 0.36, 1] }}
                 onClick={() => setOpen(i)}
                 className={`group relative overflow-hidden rounded-2xl shadow-md ${i % 5 === 0 ? "col-span-2 aspect-[16/10] sm:col-span-2 sm:aspect-[16/10]" : "aspect-[3/4]"}`}
                 style={{ border: "1px solid color-mix(in oklab, var(--inv-accent) 35%, transparent)" }}
@@ -1170,17 +1179,22 @@ function GallerySection({ s, ctx }: { s: Extract<Section, { type: "gallery" }>; 
             ))}
           </div>
         </Reveal>
+        </motion.div>
       ) : photos.length && layout === "polaroid" ? (
+        <motion.div key="polaroid" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}>
         <Reveal>
           <div className="mx-auto grid max-w-2xl grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-5">
             {photos.map((p, i) => (
               <motion.button
                 key={i}
                 type="button"
+                initial={{ opacity: 0, y: 18, rotate: i % 2 === 0 ? -5 : 5 }}
+                whileInView={{ opacity: 1, y: 0, rotate: i % 2 === 0 ? -2.2 : 2.2 }}
+                viewport={{ once: true, amount: 0.15 }}
                 whileHover={{ rotate: 0, scale: 1.04, zIndex: 10 }}
+                transition={{ type: "spring", stiffness: 260, damping: 20, delay: Math.min((i % 6) * 0.04, 0.2) }}
                 onClick={() => setOpen(i)}
                 className="relative bg-white p-2 pb-7 text-left shadow-xl transition-shadow hover:shadow-2xl"
-                style={{ transform: `rotate(${i % 2 === 0 ? -2.2 : 2.2}deg)` }}
                 aria-label={`Photo ${i + 1}`}
               >
                 <div className="aspect-[3/4] overflow-hidden bg-black/5">
@@ -1191,7 +1205,9 @@ function GallerySection({ s, ctx }: { s: Extract<Section, { type: "gallery" }>; 
             ))}
           </div>
         </Reveal>
+        </motion.div>
       ) : photos.length ? (
+      <motion.div key="slider" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}>
       <Reveal>
         <div className="mx-auto max-w-md">
           {/* Main Showcase Stage */}
@@ -1326,7 +1342,9 @@ function GallerySection({ s, ctx }: { s: Extract<Section, { type: "gallery" }>; 
           ) : null}
         </div>
       </Reveal>
+      </motion.div>
       ) : null}
+      </AnimatePresence>
       {open !== null && photos.length ? (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black/92 p-4 backdrop-blur-sm"
           onTouchStart={(e) => setTouchX(e.touches[0].clientX)}
