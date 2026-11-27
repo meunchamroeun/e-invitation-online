@@ -190,6 +190,11 @@ export const mediaAssets = pgTable(
   (t) => [index("media_event_idx").on(t.eventId)],
 );
 
+export const mediaBlobs = pgTable("media_blobs", {
+  key: text("key").primaryKey(),
+  data: text("data").notNull(),
+});
+
 /* ---------------- Guests ---------------- */
 
 export const guestGroups = pgTable(
