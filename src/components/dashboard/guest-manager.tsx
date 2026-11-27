@@ -99,6 +99,15 @@ export function GuestManager({ eventId, eventTitle, published, guests, groups, c
         <div className="flex flex-wrap gap-2">
           {canEdit ? <Button variant="outline" onClick={() => setImportOpen(true)}><FileUp className="h-4 w-4" />{L("នាំចូល", "Import")}</Button> : null}
           <a href={`/api/events/${eventId}/export?kind=guests${canEdit ? "&links=1" : ""}`} className={buttonClass("outline", "md")}><Download className="h-4 w-4" />CSV</a>
+          {canEdit ? (
+            <Button
+              variant="outline"
+              disabled={pending}
+              onClick={() => run(() => addGuestAction(eventId, { fullName: "Honored Guest", khmerName: "ភ្ញៀវកិត្តិយស", allowedAttendees: 2 }), L("បានបន្ថែម ភ្ញៀវកិត្តិយស ✓", "Added Honored Guest ✓"))}
+            >
+              <Plus className="h-4 w-4" />{L("ភ្ញៀវកិត្តិយស", "Honored Guest")}
+            </Button>
+          ) : null}
           {canEdit ? <Button onClick={() => setEditing("new")}><Plus className="h-4 w-4" />{L("បន្ថែមភ្ញៀវ", "Add guest")}</Button> : null}
         </div>
       </div>
@@ -119,7 +128,7 @@ export function GuestManager({ eventId, eventTitle, published, guests, groups, c
 
       {!guests.length ? (
         <EmptyState icon={<Users className="h-10 w-10" />} title={L("មិនទាន់មានភ្ញៀវ", "No guests yet")} body={L("បន្ថែមម្ដងម្នាក់ ឬនាំចូលពីឯកសារ CSV / Excel (រក្សាទុកជា CSV)", "Add guests one by one, or import a CSV (save Excel as CSV)")}
-          action={canEdit ? <div className="flex gap-2"><Button variant="outline" onClick={() => setImportOpen(true)}>{L("នាំចូល CSV", "Import CSV")}</Button><Button onClick={() => setEditing("new")}>{L("បន្ថែមភ្ញៀវ", "Add guest")}</Button></div> : undefined} />
+          action={canEdit ? <div className="flex flex-wrap justify-center gap-2"><Button variant="outline" onClick={() => setImportOpen(true)}>{L("នាំចូល CSV", "Import CSV")}</Button><Button variant="outline" disabled={pending} onClick={() => run(() => addGuestAction(eventId, { fullName: "Honored Guest", khmerName: "ភ្ញៀវកិត្តិយស", allowedAttendees: 2 }), L("បានបន្ថែម ភ្ញៀវកិត្តិយស ✓", "Added Honored Guest ✓"))}><Plus className="h-4 w-4" />{L("ភ្ញៀវកិត្តិយស", "Honored Guest")}</Button><Button onClick={() => setEditing("new")}>{L("បន្ថែមភ្ញៀវ", "Add guest")}</Button></div> : undefined} />
       ) : (
         <div className="overflow-hidden rounded-2xl border border-line bg-white">
           <table className="w-full text-sm">

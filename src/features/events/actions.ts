@@ -15,7 +15,7 @@ import { InvitationDocSchema, l, type InvitationDoc } from "@/features/invitatio
 import { zonedToUtc } from "@/i18n/format";
 import { audit } from "@/lib/audit";
 import { getPlan } from "@/features/billing/queries";
-import { generateToken } from "@/lib/security/tokens";
+import { encrypt, generateToken, sha256 } from "@/lib/security/tokens";
 import { can } from "@/lib/auth/permissions";
 import { notify } from "@/features/notifications/notify";
 import { deleteObject, putObject } from "@/lib/storage/files";
@@ -126,6 +126,16 @@ export async function createEventAction(input: z.input<typeof CreateSchema>, med
       await tx.insert(schema.eventMembers).values({ eventId, userId: user.id, role: "owner" });
       const groups = v.type === "wedding" || v.type === "engagement" ? DEFAULT_GROUPS : DEFAULT_GROUPS.slice(2);
       await tx.insert(schema.guestGroups).values(groups.map((name, i) => ({ eventId, name, sort: i })));
+      const guestTok = generateToken();
+      await tx.insert(schema.guests).values({
+        eventId,
+        fullName: "Honored Guest",
+        khmerName: "ភ្ញៀវកិត្តិយស",
+        allowedAttendees: 2,
+        tokenHash: sha256(guestTok),
+        tokenEnc: encrypt(guestTok),
+        tokenIssuedAt: new Date(),
+      });
       await tx.insert(schema.auditLogs).values({
         action: "event.create", actorId: user.id, eventId, meta: { template: tpl.slug },
       });
