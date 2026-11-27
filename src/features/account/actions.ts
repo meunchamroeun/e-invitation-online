@@ -41,6 +41,15 @@ export async function telegramLinkCodeAction(): Promise<{ code: string; bot: str
   return { code, bot: process.env.TELEGRAM_BOT_USERNAME || null };
 }
 
+export async function telegramStatusAction(): Promise<{ connected: boolean; chatId: string | null }> {
+  const u = await requireUser();
+  const [pref] = await db.select({ chatId: schema.notificationPrefs.telegramChatId, linkCode: schema.notificationPrefs.telegramLinkCode })
+    .from(schema.notificationPrefs)
+    .where(eq(schema.notificationPrefs.userId, u.id))
+    .limit(1);
+  return { connected: Boolean(pref?.chatId) && !pref?.linkCode, chatId: pref?.chatId ?? null };
+}
+
 export async function updateNotificationPrefsAction(p: {
   onRsvp: boolean;
   onDecline: boolean;

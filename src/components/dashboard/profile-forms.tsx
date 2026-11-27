@@ -1,8 +1,8 @@
 "use client";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Download, Loader2, Send } from "lucide-react";
-import { changePasswordAction, deleteAccountAction, telegramLinkCodeAction, updateNotificationPrefsAction, updateProfileAction } from "@/features/account/actions";
+import { changePasswordAction, deleteAccountAction, telegramLinkCodeAction, telegramStatusAction, updateNotificationPrefsAction, updateProfileAction } from "@/features/account/actions";
 import { setLocaleAction } from "@/features/auth/actions";
 import { Badge, Button, Field, Input, Select, buttonClass } from "@/components/ui";
 
@@ -16,6 +16,25 @@ export function ProfileForms({ locale, user, telegram }: { locale: "km" | "en"; 
   const [del, setDel] = useState("");
   const [msg, setMsg] = useState<Record<string, string>>({});
   const [pending, start] = useTransition();
+  useEffect(() => {
+    if (!code) return;
+    let cancelled = false;
+    const id = window.setInterval(async () => {
+      const st = await telegramStatusAction().catch(() => null);
+      if (!cancelled && st?.connected) {
+        window.clearInterval(id);
+        setCode(null);
+        setTg((prev) => ({ ...prev, connected: true }));
+        router.refresh();
+      }
+    }, 2500);
+    const stopTimer = window.setTimeout(() => window.clearInterval(id), 120000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+      window.clearTimeout(stopTimer);
+    };
+  }, [code, router]);
   const card = "rounded-3xl border border-line bg-white p-6";
   return (
     <div className="max-w-2xl space-y-6">
@@ -33,9 +52,17 @@ export function ProfileForms({ locale, user, telegram }: { locale: "km" | "en"; 
         {!tg.configured ? <p className="mt-2 rounded-xl bg-paper p-3 text-sm text-muted">{L("Telegram bot មិនទាន់កំណត់រចនាសម្ព័ន្ធលើម៉ាស៊ីនមេនេះទេ (TELEGRAM_BOT_TOKEN)។ ការជូនដំណឹងនៅតែបង្ហាញក្នុងកម្មវិធី។", "The Telegram bot isn't configured on this server (TELEGRAM_BOT_TOKEN). Notifications still appear in-app.")}</p> : null}
         {tg.configured && !tg.connected ? (
           <div className="mt-3 space-y-3 text-sm">
-            <Button variant="outline" onClick={() => start(async () => setCode(await telegramLinkCodeAction()))}><Send className="h-4 w-4" />{L("ភ្ជាប់ Telegram", "Connect Telegram")}</Button>
+            <Button variant="outline" onClick={() => start(async () => {
+              const res = await telegramLinkCodeAction();
+              setCode(res);
+              if (res.bot) window.open(`https://t.me/${res.bot}?start=${res.code}`, "_blank", "noopener,noreferrer");
+            })}><Send className="h-4 w-4" />{L("ភ្ជាប់ Telegram", "Connect Telegram")}</Button>
             {code ? (
-              <p className="rounded-xl bg-paper p-3">{L("ផ្ញើសារនេះទៅ bot", "Send this to the bot")}{code.bot ? <> <a className="font-medium text-gold-2 underline" href={`https://t.me/${code.bot}?start=${code.code}`} target="_blank" rel="noopener noreferrer">@{code.bot}</a></> : null}: <code className="rounded bg-white px-2 py-0.5">/start {code.code}</code></p>
+              <p className="flex flex-wrap items-center gap-2 rounded-xl bg-paper p-3">
+                <Loader2 className="h-4 w-4 animate-spin text-gold-2" />
+                <span>{L("កំពុងរង់ចាំចុច Start ក្នុង", "Waiting for Start in")}</span>
+                {code.bot ? <a className="font-medium text-gold-2 underline" href={`https://t.me/${code.bot}?start=${code.code}`} target="_blank" rel="noopener noreferrer">@{code.bot}</a> : <code className="rounded bg-white px-2 py-0.5">/start {code.code}</code>}
+              </p>
             ) : null}
           </div>
         ) : null}

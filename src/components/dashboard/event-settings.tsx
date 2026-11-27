@@ -1,12 +1,12 @@
 "use client";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { EventSettingsSchema, type EventSettingsInput } from "@/features/events/settings-schema";
 import { Bell, Loader2, Lock, LockOpen, Send } from "lucide-react";
 import { deleteEventAction, setGiftQrLockAction, unpublishAction, updateEventSettingsAction } from "@/features/events/actions";
-import { telegramLinkCodeAction, testNotificationAction, updateNotificationPrefsAction } from "@/features/account/actions";
+import { telegramLinkCodeAction, telegramStatusAction, testNotificationAction, updateNotificationPrefsAction } from "@/features/account/actions";
 import { Badge, Button, Field, Input, Textarea } from "@/components/ui";
 
 export type NotificationInitial = {
@@ -103,16 +103,22 @@ export function EventSettingsForm({ eventId, locale, initial, notifications, can
           </Field>
         </div>
         {notif.serverBotConfigured ? (
-          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
-            <Button type="button" variant="outline" size="sm" disabled={pending} onClick={() => start(async () => setTgCode(await telegramLinkCodeAction()))}>
-              <Send className="h-3.5 w-3.5" />{L("ភ្ជាប់តាម Telegram Bot", "Link via Telegram Bot")}
-            </Button>
-            {tgCode ? (
-              <span className="rounded-lg bg-paper px-3 py-1.5">
-                {L("ផ្ញើ", "Send")} <code className="font-mono">/start {tgCode.code}</code> {tgCode.bot ? <a className="text-gold-2 underline" href={`https://t.me/${tgCode.bot}?start=${tgCode.code}`} target="_blank" rel="noopener noreferrer">@{tgCode.bot}</a> : null}
-              </span>
-            ) : null}
-          </div>
+          <TelegramAutoConnect
+            tgCode={tgCode}
+            pending={pending}
+            locale={locale}
+            onStart={() => start(async () => {
+              const res = await telegramLinkCodeAction();
+              setTgCode(res);
+              if (res.bot) window.open(`https://t.me/${res.bot}?start=${res.code}`, "_blank", "noopener,noreferrer");
+            })}
+            onConnected={(chatId) => {
+              setTgCode(null);
+              setNotif((n) => ({ ...n, telegramChatId: chatId }));
+              setNotifMsg({ text: L("បានភ្ជាប់ Telegram ដោយស្វ័យប្រវត្តិ ✓", "Telegram connected automatically ✓"), error: false });
+              router.refresh();
+            }}
+          />
         ) : null}
         <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
           <Button type="button" variant="outline" disabled={pending} onClick={() => {
@@ -171,6 +177,56 @@ export function EventSettingsForm({ eventId, locale, initial, notifications, can
             <Button variant="danger" disabled={confirm.trim() !== initial.title.trim() || pending} onClick={() => start(async () => { await deleteEventAction(eventId, confirm); })}>{L("លុប", "Delete")}</Button>
           </div>
         </div>
+      ) : null}
+    </div>
+  );
+}
+
+function TelegramAutoConnect({
+  tgCode, pending, locale, onStart, onConnected,
+}: {
+  tgCode: { code: string; bot: string | null } | null;
+  pending: boolean;
+  locale: "km" | "en";
+  onStart: () => void;
+  onConnected: (chatId: string) => void;
+}) {
+  const L = (km: string, en: string) => (locale === "km" ? km : en);
+  useEffect(() => {
+    if (!tgCode) return;
+    let cancelled = false;
+    const id = window.setInterval(async () => {
+      const st = await telegramStatusAction().catch(() => null);
+      if (!cancelled && st?.connected && st.chatId) {
+        window.clearInterval(id);
+        onConnected(st.chatId);
+      }
+    }, 2500);
+    const stopTimer = window.setTimeout(() => window.clearInterval(id), 120000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+      window.clearTimeout(stopTimer);
+    };
+  }, [tgCode, onConnected]);
+
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
+      <Button type="button" variant="outline" size="sm" disabled={pending} onClick={onStart}>
+        <Send className="h-3.5 w-3.5" />{L("ភ្ជាប់តាម Telegram Bot", "Link via Telegram Bot")}
+      </Button>
+      {tgCode ? (
+        <span className="inline-flex flex-wrap items-center gap-2 rounded-lg bg-paper px-3 py-1.5">
+          <Loader2 className="h-3.5 w-3.5 animate-spin text-gold-2" />
+          <span>{L("កំពុងរង់ចាំចុច Start ក្នុង", "Waiting for Start in")}</span>
+          {tgCode.bot ? (
+            <a className="font-medium text-gold-2 underline" href={`https://t.me/${tgCode.bot}?start=${tgCode.code}`} target="_blank" rel="noopener noreferrer">
+              @{tgCode.bot}
+            </a>
+          ) : (
+            <code className="font-mono">/start {tgCode.code}</code>
+          )}
+        </span>
       ) : null}
     </div>
   );
