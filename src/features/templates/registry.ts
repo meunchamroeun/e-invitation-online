@@ -17,7 +17,7 @@ export const EVENT_TYPES: { value: EventType; label: LText }[] = [
 ];
 
 export type Family =
-  | "royal" | "ivory" | "temple" | "lotus" | "emerald" | "silk" | "palmleaf" | "editorial" | "festive" | "village" | "memorial" | "marble";
+  | "royal" | "ivory" | "temple" | "lotus" | "emerald" | "silk" | "palmleaf" | "editorial" | "festive" | "village" | "memorial" | "marble" | "moonlit" | "curtains";
 
 export type KhmerFont = "moul" | "moulpali" | "dangrek" | "kantumruy" | "battambang" | "notoSerif";
 export type LatinFont = "cormorant" | "playfair" | "pinyon" | "inter";
@@ -31,7 +31,7 @@ export type TemplateDef = {
   category: EventType;
   family: Family;
   style: "traditional" | "luxury" | "modern" | "minimal" | "floral" | "festive" | "solemn";
-  color: "red" | "gold" | "ivory" | "navy" | "pink" | "green" | "black" | "brown" | "white" | "saffron";
+  color: "red" | "gold" | "ivory" | "navy" | "pink" | "green" | "black" | "brown" | "white" | "saffron" | "purple";
   tier: "free" | "premium";
   featured?: boolean;
   palette: Palette;
@@ -44,7 +44,60 @@ const P = (bg: string, surface: string, ink: string, muted: string, primary: str
   bg, surface, ink, muted, primary, accent, onPrimary,
 });
 
+export const MOONLIT_SAMPLE_PHOTO = "placeholder:moonlit-jasmine";
+export const CURTAINS_SAMPLE_COVER = "placeholder:curtains-cover";
+export const CURTAINS_SAMPLE_AUDIO = "placeholder:curtains-audio";
+export const CLASSIC_SAMPLE_AUDIO = "placeholder:classic-audio";
+
 export const TEMPLATES: TemplateDef[] = [
+  {
+    slug: "champagne-curtains", version: 1, category: "wedding", family: "curtains", style: "luxury", color: "gold", tier: "free", featured: true,
+    name: l("វាំងននសូត្រ និងក្បាច់មាស", "Champagne Curtains"),
+    description: l("ផ្ទៃវាំងននភ្លើងព្រិច ផ្កាកុលាបស្រាល ស៊ុមឈ្មោះក្បាច់មាស និងផ្កាធ្លាក់ — រចនាបែបទំនើប និងប្រពៃណីខ្មែរ", "Sheer fairy-lit curtains, blush roses, golden kbach name banner, squircle countdown, and falling rose petals"),
+    palette: P("#FAF6F0", "#FFFDF9", "#4A3A28", "#8A7355", "#B08E4F", "#E9A96E", "#FFFFFF"),
+    fonts: { display: "moul", body: "battambang", latin: "playfair" },
+    envelope: { body: "#EFE3CF", flap: "#E5D3B5", seal: "#B08E4F", liner: "#E9A96E" },
+  },
+  {
+    slug: "classic-floral", version: 1, category: "wedding", family: "ivory", style: "floral", color: "ivory", tier: "premium", featured: true,
+    name: l("ក្លាស៊ីក (ចុចបើក)", "Classic Floral"),
+    description: l("ផ្ទៃផ្កាពណ៌ទឹកមាសមានចលនា រូបគំនូរកូនកំលោះ-កូនក្រមុំ ស៊ុមមាសបុរាណ និងផ្កាធ្លាក់", "Animated watercolor floral backdrop, illustrated bride & groom portraits, gold monogram crest, and falling petals"),
+    palette: P("#FAF5EE", "#FFFDF9", "#5A3E1F", "#866742", "#C4914F", "#D09D5A", "#FFFFFF"),
+    fonts: { display: "moul", body: "battambang", latin: "playfair" },
+    envelope: { body: "#F3EAE0", flap: "#E9DAC8", seal: "#C4914F", liner: "#D09D5A" },
+  },
+  {
+    slug: "navy-scratch", version: 1, category: "wedding", family: "temple", style: "luxury", color: "navy", tier: "premium", featured: true,
+    name: l("កោសបើក ស្លាយរូបភាព (Blue)", "Royal Navy Scratch"),
+    description: l("ផ្ទៃខៀវចាស់ក្បាច់ខ្មែរ កោសបើកស៊ុមមាស បង្ហាញស្លាយរូបភាព និងក្បាច់មាសប្រណិត", "Deep navy kbach pattern with a gold scratch-to-open gate and photo slideshow"),
+    palette: P("#0B1A3A", "#10234A", "#FFF3D2", "#9FB0CE", "#F0D48F", "#C99A4B", "#0B1A3A"),
+    fonts: { display: "moul", body: "battambang", latin: "playfair" },
+    envelope: { body: "#0B1A3A", flap: "#142954", seal: "#F0D48F", liner: "#C99A4B" },
+  },
+  {
+    slug: "crimson-lovestory", version: 1, category: "wedding", family: "royal", style: "traditional", color: "red", tier: "premium", featured: true,
+    name: l("កោសបើក Love Story", "Crimson Love Story"),
+    description: l("ផ្ទៃក្រហមឈាមជ្រូកក្បាច់មាស កោសបើកធៀប និងរឿងរ៉ាវស្នេហាដ៏ផ្អែមល្ហែម", "Deep crimson kbach pattern with a gold scratch-to-open gate and Love Story chapters"),
+    palette: P("#8A1A27", "#711520", "#FFF3D2", "#DFB3B8", "#F0D48F", "#D4A95A", "#5A1119"),
+    fonts: { display: "moul", body: "battambang", latin: "cormorant" },
+    envelope: { body: "#8A1A27", flap: "#711520", seal: "#F0D48F", liner: "#D4A95A" },
+  },
+  {
+    slug: "ivory-scratch-lite", version: 1, category: "wedding", family: "ivory", style: "luxury", color: "ivory", tier: "premium", featured: true,
+    name: l("កោសបើក ស្លាយរូបភាព (Lite)", "Ivory Scratch Lite"),
+    description: l("ផ្ទៃពណ៌ភ្លុកដំរីក្បាច់ខ្មែរ កោសបើកស៊ុមប្រាក់ និងរចនាបថមាសសំរិទ្ធ", "Warm ivory kbach backdrop with a silver scratch-to-open oval and bronze-gold typography"),
+    palette: P("#E4E0DB", "#FFFDF9", "#5A3E1F", "#8A7355", "#B4813F", "#D09D5A", "#FFFFFF"),
+    fonts: { display: "moul", body: "battambang", latin: "playfair" },
+    envelope: { body: "#E4E0DB", flap: "#D8D1C7", seal: "#B4813F", liner: "#D09D5A" },
+  },
+  {
+    slug: "champagne-scratch", version: 1, category: "wedding", family: "curtains", style: "floral", color: "gold", tier: "premium", featured: true,
+    name: l("កោសបើក - Scratch", "Champagne Scratch"),
+    description: l("កោសបើកស៊ុមប្រាក់ ដើម្បីបង្ហាញផ្ទាំងវាំងននសូត្រ ផ្កាកុលាប និងក្បាច់មាស", "Silver scratch-to-open gate revealing the champagne curtains & gold kbach invitation"),
+    palette: P("#FAF6F0", "#FFFDF9", "#4A3A28", "#8A7355", "#B08E4F", "#E9A96E", "#FFFFFF"),
+    fonts: { display: "moul", body: "battambang", latin: "playfair" },
+    envelope: { body: "#E4E0DB", flap: "#D8D1C7", seal: "#B08E4F", liner: "#E9A96E" },
+  },
   {
     slug: "marble-rose", version: 1, category: "wedding", family: "marble", style: "floral", color: "red", tier: "free", featured: true,
     name: l("ថ្មម៉ាប និងផ្កាកុលាបក្រហមទុំ", "Marble & Burgundy Rose"),
@@ -52,6 +105,14 @@ export const TEMPLATES: TemplateDef[] = [
     palette: P("#F6F3F0", "#FFFFFF", "#4A1622", "#7E5F64", "#7A1F32", "#B8893E", "#FFFFFF"),
     fonts: { display: "moul", body: "battambang", latin: "pinyon" },
     envelope: { body: "#EFE7E1", flap: "#E6DAD2", seal: "#7A1F32", liner: "#B8893E" },
+  },
+  {
+    slug: "moonlit-jasmine", version: 1, category: "wedding", family: "moonlit", style: "floral", color: "purple", tier: "free", featured: true,
+    name: l("ម្លិះក្រោមពន្លឺចន្ទ", "Moonlit Jasmine"),
+    description: l("ស៊ុមរូបថតលើផ្ទៃពណ៌ស្វាយចាស់ ជាមួយពណ៌លីឡាក់ស្រាល និងផ្កាម្លិះ សម្រាប់ពិធីមង្គលការពេលល្ងាច", "A framed portrait, pearl lettering, and softly lit jasmine against midnight plum for an evening wedding"),
+    palette: P("#171223", "#251B32", "#F9F3F8", "#CFC2DA", "#E3C6EB", "#EDE3C9", "#26182E"),
+    fonts: { display: "moulpali", body: "battambang", latin: "cormorant" },
+    envelope: { body: "#372343", flap: "#422C51", seal: "#876191", liner: "#E3C6EB" },
   },
   {
     slug: "royal-khmer", version: 1, category: "wedding", family: "royal", style: "traditional", color: "red", tier: "premium", featured: true,
@@ -253,7 +314,7 @@ function weddingSample(): Section[] {
         ],
       },
     },
-    { id: sid("s"), type: "video", hidden: false, data: { heading: l("វីដេអូមុនរៀបការ", "Pre-wedding film"), caption: l("វីដេអូគំរូ — ផ្ទុកឡើងវីដេអូរបស់អ្នក ឬដាក់តំណ YouTube", "Sample — upload your own film or add a YouTube link"), src: "", poster: "placeholder:video", youtube: "" } },
+    { id: sid("s"), type: "video", hidden: false, data: { heading: l("កម្រងវីដេអូ", "Pre-wedding film"), caption: l(), src: "", poster: "placeholder:video", youtube: "", autoPlay: true } },
     {
       id: sid("s"), type: "gallery", hidden: false,
       data: { heading: l("អនុស្សាវរីយ៍", "Moments"), photos: ["g1", "g2", "g3", "g4", "g5", "g6"].map((g) => ({ src: `placeholder:${g}`, caption: l() })) },
@@ -324,6 +385,80 @@ export function sampleDoc(t: TemplateDef): InvitationDoc {
   if (t.family === "marble") {
     doc.sections = doc.sections.map((s) => (s.type === "venue" ? { ...s, data: { ...s.data, mapImage: "placeholder:map", note: l("ពីរង្វង់មូល បត់ស្ដាំតាមផ្លូវជាតិ ប្រហែល ៣ គីឡូម៉ែត្រ (ឧទាហរណ៍)", "From the roundabout, turn right on the national road for about 3 km (example)") } } : s));
   }
+  if (t.family === "moonlit") {
+    doc.sections = doc.sections.map((section): Section => {
+      switch (section.type) {
+        case "hero":
+          return { ...section, data: { ...section.data, photo: MOONLIT_SAMPLE_PHOTO, tagline: l("សូមរួមអបអរសាទរជាមួយយើងទាំងពីរ", "Join us for an evening with our dearest people") } };
+        case "story":
+          return { ...section, hidden: true };
+        case "venue":
+          return { ...section, data: { ...section.data, mapImage: "placeholder:map", parking: l() } };
+        default:
+          return section;
+      }
+    });
+  }
+  if (t.slug === "classic-floral") {
+    doc.theme.music = { src: CLASSIC_SAMPLE_AUDIO, title: "Classic Wedding Melody" };
+    doc.sections = doc.sections.map((section): Section => {
+      switch (section.type) {
+        case "cover":
+          return { ...section, data: { ...section.data, photo: CURTAINS_SAMPLE_COVER, button: l("សូមចុចដើម្បីបើកសំបុត្រ", "Click to open invitation") } };
+        case "hero":
+          return { ...section, data: { ...section.data, photo: CURTAINS_SAMPLE_COVER } };
+        case "couple":
+          return {
+            ...section,
+            data: {
+              left: { ...section.data.left, photo: "placeholder:classic-groom" },
+              right: { ...section.data.right, photo: "placeholder:classic-bride" },
+            },
+          };
+        case "gallery":
+          return {
+            ...section,
+            data: { ...section.data, photos: [1, 2, 3, 4].map((i) => ({ src: `placeholder:curtains-g${i}`, caption: l() })) },
+          };
+        case "story":
+          return { ...section, hidden: true };
+        default:
+          return section;
+      }
+    });
+  } else if (t.family === "curtains" || t.slug === "navy-scratch" || t.slug === "crimson-lovestory" || t.slug === "ivory-scratch-lite") {
+    doc.theme.music = { src: CURTAINS_SAMPLE_AUDIO, title: "Wedding Melody" };
+    doc.sections = doc.sections.map((section): Section => {
+      switch (section.type) {
+        case "cover":
+          return { ...section, data: { ...section.data, photo: CURTAINS_SAMPLE_COVER } };
+        case "hero":
+          return {
+            ...section,
+            data: {
+              ...section.data,
+              photo: CURTAINS_SAMPLE_COVER,
+              tagline: l("សូមគោរពអញ្ជើញ", "We cordially invite"),
+            },
+          };
+        case "gallery":
+          return {
+            ...section,
+            data: {
+              ...section.data,
+              photos: [1, 2, 3, 4].map((i) => ({
+                src: `placeholder:curtains-g${i}`,
+                caption: l(),
+              })),
+            },
+          };
+        case "story":
+          return { ...section, hidden: t.slug !== "crimson-lovestory" };
+        default:
+          return section;
+      }
+    });
+  }
   return doc;
 }
 
@@ -350,6 +485,7 @@ export function sampleEvent(t: TemplateDef) {
     endsAt: null as string | null,
     timezone: "Asia/Phnom_Penh",
     venueName: t.category === "corporate" ? "Sample Convention Hall" : "សណ្ឋាគារគំរូ (Sample Hotel)",
+    previewVenueName: t.family === "moonlit" ? l("សណ្ឋាគារគំរូ", "Sample Hotel") : undefined,
     venueAddress: "Phnom Penh, Cambodia",
     mapUrl: "",
     allowMaybe: true,
@@ -377,7 +513,7 @@ export function starterDoc(t: TemplateDef, input: {
       case "cover":
         return { ...s, data: { ...s.data, names: input.hostNames } };
       case "hero":
-        return { ...s, data: { ...s.data, names: input.hostNames } };
+        return { ...s, data: { ...s.data, names: input.hostNames, photo: s.data.photo === MOONLIT_SAMPLE_PHOTO ? "placeholder:couple" : s.data.photo } };
       case "invitation":
         return {
           ...s,
@@ -418,5 +554,65 @@ export function starterDoc(t: TemplateDef, input: {
         return s;
     }
   });
+  if (t.slug === "classic-floral") {
+    doc.theme.music = { src: CLASSIC_SAMPLE_AUDIO, title: "Classic Wedding Melody" };
+    doc.sections = doc.sections.map((section): Section => {
+      switch (section.type) {
+        case "cover":
+          return { ...section, data: { ...section.data, photo: CURTAINS_SAMPLE_COVER, button: l("សូមចុចដើម្បីបើកសំបុត្រ", "Click to open invitation") } };
+        case "hero":
+          return { ...section, data: { ...section.data, photo: CURTAINS_SAMPLE_COVER } };
+        case "couple":
+          return {
+            ...section,
+            data: {
+              left: { ...section.data.left, photo: "placeholder:classic-groom" },
+              right: { ...section.data.right, photo: "placeholder:classic-bride" },
+            },
+          };
+        case "gallery":
+          return {
+            ...section,
+            data: { ...section.data, photos: [1, 2, 3, 4].map((i) => ({ src: `placeholder:curtains-g${i}`, caption: l() })) },
+          };
+        case "story":
+          return { ...section, hidden: true };
+        default:
+          return section;
+      }
+    });
+  } else if (t.family === "curtains" || t.slug === "navy-scratch" || t.slug === "crimson-lovestory" || t.slug === "ivory-scratch-lite") {
+    doc.theme.music = { src: CURTAINS_SAMPLE_AUDIO, title: "Wedding Melody" };
+    doc.sections = doc.sections.map((section): Section => {
+      switch (section.type) {
+        case "cover":
+          return { ...section, data: { ...section.data, photo: CURTAINS_SAMPLE_COVER } };
+        case "hero":
+          return {
+            ...section,
+            data: {
+              ...section.data,
+              photo: CURTAINS_SAMPLE_COVER,
+              tagline: l("សូមគោរពអញ្ជើញ", "We cordially invite"),
+            },
+          };
+        case "gallery":
+          return {
+            ...section,
+            data: {
+              ...section.data,
+              photos: [1, 2, 3, 4].map((i) => ({
+                src: `placeholder:curtains-g${i}`,
+                caption: l(),
+              })),
+            },
+          };
+        case "story":
+          return { ...section, hidden: t.slug !== "crimson-lovestory" };
+        default:
+          return section;
+      }
+    });
+  }
   return doc;
 }

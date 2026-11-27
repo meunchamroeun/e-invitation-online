@@ -6,13 +6,13 @@ import { submitRsvpAction } from "@/features/rsvp/actions";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { num } from "@/i18n/format";
 
-export function RsvpForm({ token, d, locale, allowed, allowMaybe, initial, deadlinePassed }: {
+export function RsvpForm({ token, d, locale, allowed, allowMaybe, initial, deadlinePassed, demo }: {
   token: string; d: Dictionary["invite"]; locale: "km" | "en"; allowed: number; allowMaybe: boolean; deadlinePassed: boolean;
   initial: { status: string; count: number; updatedAt: string | null };
+  demo?: boolean;
 }) {
   const [status, setStatus] = useState(initial.status === "pending" ? "" : initial.status);
   const [count, setCount] = useState(Math.max(1, Math.min(allowed, initial.count || 1)));
-  const [dietary, setDietary] = useState("");
   const [message, setMessage] = useState("");
   const [saved, setSaved] = useState<{ status: string; count: number; updatedAt: string } | null>(initial.status !== "pending" && initial.updatedAt ? { status: initial.status, count: initial.count, updatedAt: initial.updatedAt } : null);
   const [editing, setEditing] = useState(initial.status === "pending");
@@ -51,7 +51,12 @@ export function RsvpForm({ token, d, locale, allowed, allowMaybe, initial, deadl
         if (!status) return;
         setError("");
         start(async () => {
-          const r = await submitRsvpAction({ token, status, count, dietary, message });
+          if (demo) {
+            setSaved({ status, count: status === "attending" || status === "maybe" ? count : 0, updatedAt: new Date().toISOString() });
+            setEditing(false);
+            return;
+          }
+          const r = await submitRsvpAction({ token, status, count, dietary: "", message });
           if (r.ok) { setSaved(r); setEditing(false); }
           else setError(r.error === "deadline" ? d.deadlinePassed : r.error === "rate" ? "Too many attempts — please try again later." : "Something went wrong. Please try again.");
         });
@@ -71,12 +76,6 @@ export function RsvpForm({ token, d, locale, allowed, allowMaybe, initial, deadl
             <button type="button" aria-label="+" disabled={count >= allowed} onClick={() => setCount(count + 1)} className="flex h-9 w-9 items-center justify-center rounded-full disabled:opacity-30" style={{ border: "1px solid var(--inv-primary)" }}><Plus className="h-4 w-4" /></button>
           </span>
         </div>
-      ) : null}
-      {status && status !== "declined" ? (
-        <label className="block text-sm">
-          <span style={{ color: "var(--inv-muted)" }}>{d.dietary}</span>
-          <input value={dietary} onChange={(e) => setDietary(e.target.value)} maxLength={200} className="mt-1 h-11 w-full rounded-xl bg-transparent px-3" style={{ border: "1px solid color-mix(in oklab, var(--inv-primary) 35%, transparent)" }} />
-        </label>
       ) : null}
       {status ? (
         <label className="block text-sm">

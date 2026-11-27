@@ -85,7 +85,26 @@ export async function submitWishAction(token: string, message: string): Promise<
   // crude link/spam guard — wishes are moderated anyway
   if ((msg.match(/https?:\/\//g) ?? []).length > 1) return { ok: false, error: "spam" };
   const [w] = await db.insert(schema.guestWishes).values({ eventId: found.event.id, guestId: found.guest.id, message: msg }).returning({ id: schema.guestWishes.id });
-  await notify({ userId: found.event.ownerId, eventId: found.event.id, kind: "wish_pending", idempotencyKey: `wish:${w.id}`, payload: { guest: found.guest.fullName, title: found.event.title } });
+  await notify({ userId: found.event.ownerId, eventId: found.event.id, kind: "wish_pending", idempotencyKey: `wish:${w.id}`, payload: { guest: found.guest.khmerName || found.guest.fullName, title: found.event.title, message: msg } });
+  return { ok: true };
+}
+
+export async function submitPublicWishAction(slug: string, guestName: string, message: string): Promise<{ ok: boolean; error?: string }> {
+  if (!/^[A-Za-z0-9_-]{6,40}$/.test(slug)) return { ok: false, error: "invalid" };
+  const name = guestName.trim().slice(0, 100);
+  const msg = message.trim().slice(0, 600);
+  if (name.length < 2 || msg.length < 2) return { ok: false, error: "short" };
+  const ip = await clientIp();
+  if (!(await rateLimit(`wish:pub:${ip}:${slug}`, 5, 3600))) return { ok: false, error: "rate" };
+  const [ev] = await db
+    .select()
+    .from(schema.events)
+    .where(and(eq(schema.events.publicSlug, slug), eq(schema.events.isPublic, true), eq(schema.events.status, "published"), isNull(schema.events.deletedAt)))
+    .limit(1);
+  if (!ev || !ev.wishesEnabled) return { ok: false, error: "invalid" };
+  if ((msg.match(/https?:\/\//g) ?? []).length > 1) return { ok: false, error: "spam" };
+  const [w] = await db.insert(schema.guestWishes).values({ eventId: ev.id, guestId: null, guestName: name, message: msg }).returning({ id: schema.guestWishes.id });
+  await notify({ userId: ev.ownerId, eventId: ev.id, kind: "wish_pending", idempotencyKey: `wish:${w.id}`, payload: { guest: name, title: ev.title, message: msg } });
   return { ok: true };
 }
 

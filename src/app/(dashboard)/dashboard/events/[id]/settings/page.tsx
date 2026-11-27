@@ -1,14 +1,18 @@
+import { eq } from "drizzle-orm";
 import { requireEvent } from "@/lib/auth/event-access";
 import { can } from "@/lib/auth/permissions";
+import { db, schema } from "@/lib/db";
 import { getI18n } from "@/i18n/server";
 import { zonedParts } from "@/i18n/format";
 import { EventSettingsForm } from "@/components/dashboard/event-settings";
 import { appUrl } from "@/features/guests/links";
+import { telegramConfigured } from "@/lib/telegram/client";
 
 export default async function SettingsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { event, role } = await requireEvent(id, "event.edit");
+  const { event, role, user } = await requireEvent(id, "event.edit");
   const { locale } = await getI18n();
+  const [prefs] = await db.select().from(schema.notificationPrefs).where(eq(schema.notificationPrefs.userId, user.id)).catch(() => [undefined]);
   const p = event.startsAt ? zonedParts(event.startsAt, event.timezone) : null;
   const e = event.endsAt ? zonedParts(event.endsAt, event.timezone) : null;
   const dl = event.rsvpDeadline ? zonedParts(event.rsvpDeadline, event.timezone) : null;
@@ -18,6 +22,14 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
       eventId={id} locale={locale} canDelete={can(role, "event.delete")} canQr={can(role, "giftqr.edit")} canPublish={can(role, "event.publish")} published={event.status === "published"}
       giftLocked={event.giftQrLocked}
       publicUrl={event.isPublic && event.publicSlug ? `${appUrl()}/e/${event.publicSlug}` : null}
+      notifications={{
+        serverBotConfigured: telegramConfigured(),
+        telegramChatId: prefs?.telegramChatId ?? "",
+        telegramBotToken: prefs?.telegramBotToken ?? "",
+        onRsvp: prefs?.onRsvp ?? true,
+        onDecline: prefs?.onDecline ?? true,
+        onWish: prefs?.onWish ?? true,
+      }}
       initial={{
         title: event.title, organizerNotes: event.organizerNotes ?? "", timezone: event.timezone,
         date: p ? `${p.year}-${pad(p.month)}-${pad(p.day)}` : "", startTime: p ? `${pad(p.hour)}:${pad(p.minute)}` : "", endTime: e ? `${pad(e.hour)}:${pad(e.minute)}` : "",

@@ -1,4 +1,15 @@
 import { ChanFlower, Lotus, PrasatSilhouette, SugarPalms } from "./ornaments";
+import { CURTAINS_SAMPLE_COVER, MOONLIT_SAMPLE_PHOTO } from "@/features/templates/registry";
+
+const CURTAINS_PHOTOS: Record<string, string> = {
+  [CURTAINS_SAMPLE_COVER]: "/templates/champagne-curtains/cover.jpg",
+  "placeholder:curtains-g1": "/templates/champagne-curtains/gallery-1.jpg",
+  "placeholder:curtains-g2": "/templates/champagne-curtains/gallery-2.jpg",
+  "placeholder:curtains-g3": "/templates/champagne-curtains/gallery-3.jpg",
+  "placeholder:curtains-g4": "/templates/champagne-curtains/gallery-4.jpg",
+  "placeholder:classic-groom": "/templates/planessential/groom.png",
+  "placeholder:classic-bride": "/templates/planessential/bride.png",
+};
 
 /**
  * Renders an uploaded image, or — for "placeholder:*" refs — an original illustrated placeholder
@@ -31,6 +42,30 @@ export function Photo({
   if (!src.startsWith("placeholder:")) {
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={src} alt={alt} loading="lazy" decoding="async" className={`h-full w-full object-cover ${rounded} ${className}`} />;
+  }
+  if (src === MOONLIT_SAMPLE_PHOTO) {
+    return (
+      <div className={`relative h-full w-full overflow-hidden ${rounded} ${className}`}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/templates/moonlit-jasmine/couple.webp" alt={`${alt} (${label})`} loading="lazy" decoding="async"
+          className="h-full w-full object-cover object-[center_18%]" />
+        <span aria-hidden className="absolute inset-e-3 bottom-3 rounded-full bg-black/65 px-2.5 py-1 text-[10px] text-white">
+          {label}
+        </span>
+      </div>
+    );
+  }
+  if (src in CURTAINS_PHOTOS) {
+    return (
+      <div className={`relative h-full w-full overflow-hidden ${rounded} ${className}`}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={CURTAINS_PHOTOS[src]} alt={`${alt} (${label})`} loading="lazy" decoding="async"
+          className={`h-full w-full object-cover ${className}`} />
+        <span aria-hidden className="absolute inset-e-3 bottom-3 rounded-full bg-black/65 px-2.5 py-1 text-[10px] text-white">
+          {label}
+        </span>
+      </div>
+    );
   }
   const kind = src.slice("placeholder:".length);
   if (kind === "map") return <SampleMap label={label} className={className} />;

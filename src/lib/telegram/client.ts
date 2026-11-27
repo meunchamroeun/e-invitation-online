@@ -5,8 +5,8 @@ export function telegramConfigured() {
   return !!process.env.TELEGRAM_BOT_TOKEN;
 }
 
-export async function sendTelegram(chatId: string, text: string): Promise<{ ok: true } | { ok: false; skipped?: boolean; error: string }> {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
+export async function sendTelegram(chatId: string, text: string, botToken?: string | null): Promise<{ ok: true } | { ok: false; skipped?: boolean; error: string }> {
+  const token = botToken?.trim() || process.env.TELEGRAM_BOT_TOKEN;
   if (!token) return { ok: false, skipped: true, error: "TELEGRAM_BOT_TOKEN not configured" };
   try {
     const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {

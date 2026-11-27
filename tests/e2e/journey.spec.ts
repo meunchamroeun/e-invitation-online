@@ -15,6 +15,32 @@ async function register(page: Page, name: string, email: string) {
   await page.waitForURL("**/dashboard");
 }
 
+test("Moonlit Jasmine is available from the catalogue and works in a new wedding", async ({ page, context, baseURL }) => {
+  await context.addCookies([{ name: "ei_locale", value: "en", url: baseURL! }]);
+  await register(page, "Moonlit Test", `moonlit-${uid}@example.com`);
+  await page.goto("/templates/moonlit-jasmine");
+  const demoArt = await page.request.get("/templates/moonlit-jasmine/couple.webp");
+  expect(demoArt.headers()["content-type"]).toBe("image/webp");
+  await page.getByRole("link", { name: "Use this design" }).click();
+  await expect(page.locator("#event-template")).toHaveValue("moonlit-jasmine");
+  await page.fill("#title", "Moonlit Wedding Test");
+  await page.fill("#partner-one", "Sovan");
+  await page.fill("#partner-two", "Dalin");
+  await page.fill("#date", "2027-08-21");
+  await page.fill("#st", "18:00");
+  await page.getByRole("button", { name: "Create & open builder" }).click();
+  await page.waitForURL("**/builder");
+  const eventId = page.url().match(/events\/([0-9a-f-]{36})/)![1];
+  const builderPreview = page.frameLocator("iframe").first();
+  await expect(builderPreview.getByRole("heading", { name: /Sovan.*Dalin/ })).toBeVisible();
+  await expect(builderPreview.locator('img[src$="/moonlit-jasmine/couple.webp"]')).toHaveCount(0);
+  const toolbar = page.locator("header");
+  await toolbar.getByRole("button", { name: "Publish", exact: true }).click();
+  await expect(toolbar.getByRole("button", { name: "Update", exact: true })).toBeVisible();
+  const response = await page.request.get(`/api/events/${eventId}/template`);
+  expect(await response.json()).toMatchObject({ template: { slug: "moonlit-jasmine", tier: "free" } });
+});
+
 test("hosts can browse matching designs, preview them, and create a graduation invitation", async ({ page, context, baseURL }) => {
   await context.addCookies([{ name: "ei_locale", value: "en", url: baseURL! }]);
   await register(page, "Rathana", `graduation-${uid}@example.com`);
@@ -40,7 +66,10 @@ test("hosts can browse matching designs, preview them, and create a graduation i
     gallery.getByRole("link", { name: "Preview: Graduation Honours" }).click(),
   ]);
   await preview.waitForURL("**/t/graduation-honours?lang=en");
+  await preview.emulateMedia({ reducedMotion: "reduce" });
   await expect(preview.getByRole("button", { name: "Open invitation" })).toBeVisible();
+  await preview.getByRole("button", { name: "Open invitation" }).click();
+  await expect(preview.getByRole("dialog", { name: "Open invitation" })).toBeHidden();
   await preview.close();
   await gallery.getByRole("button", { name: "Use design: Graduation Honours" }).click();
   await expect(page.locator("#event-template")).toHaveValue("graduation-honours");
@@ -52,6 +81,13 @@ test("hosts can browse matching designs, preview them, and create a graduation i
   await page.getByRole("button", { name: "Create & open builder" }).click();
   await page.waitForURL("**/builder");
   await expect(page.frameLocator("iframe").first().getByText("Rathana", { exact: true }).first()).toBeVisible();
+  const desktopPreview = page.getByRole("button", { name: "Desktop preview", exact: true });
+  await page.getByRole("button", { name: "Tablet preview", exact: true }).focus();
+  await page.keyboard.press("Tab");
+  await expect(desktopPreview).toBeFocused();
+  await expect(page.getByText("Desktop preview", { exact: true })).toBeVisible();
+  await desktopPreview.click();
+  await expect(desktopPreview).toHaveAttribute("aria-pressed", "true");
 });
 
 test("owner creates, publishes and manages an event; guest RSVPs; staff checks in", async ({ page, browser, context }) => {
@@ -94,16 +130,26 @@ test("owner creates, publishes and manages an event; guest RSVPs; staff checks i
   await expect(page.locator("textarea[id$='.body-km']")).toHaveValue("Welcome to our celebration");
   await page.locator("textarea[id$='.body-km']").fill("សូមគោរពអញ្ជើញចូលរួម (E2E)");
   await expect(page.getByRole("button", { name: "Undo" })).toBeEnabled();
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect(page.locator("textarea[id$='.body-km']")).toHaveValue("Welcome to our celebration");
+  await page.getByRole("button", { name: "Redo" }).click();
   await expect(page.getByText("បានរក្សាទុក")).toBeVisible({ timeout: 10_000 });
   await expect(page.frameLocator("iframe").first().getByText("(E2E)")).toBeVisible();
 
   // Publish
+  await page.getByRole("button", { name: "កំណែ", exact: true }).click();
+  await expect(page.getByText("មិនទាន់មានកំណែ")).toBeVisible();
   await page.locator("header").getByRole("button", { name: /ផ្សព្វផ្សាយ/ }).first().click();
+  await expect(page.getByRole("button", { name: "ស្ដារ", exact: true })).toBeVisible();
   await page.goto(`/dashboard/events/${eventId}`);
   await expect(page.getByText("កំពុងផ្សព្វផ្សាយ")).toBeVisible();
   await page.goto(`/dashboard/events/${eventId}/settings`);
   await expect(page.locator("#organizer-notes")).toHaveValue("Private: confirm the table layout");
   await page.fill("#organizer-notes", "Private: layout confirmed");
+  await page.fill("#s-m", "http://example.com/map");
+  await page.getByRole("button", { name: "រក្សាទុក", exact: true }).click();
+  await expect(page.locator("#s-m")).toHaveAttribute("aria-invalid", "true");
+  await page.fill("#s-m", "");
   await page.getByRole("checkbox", { name: /បើកតំណសាធារណៈ/ }).check();
   await page.getByRole("button", { name: "រក្សាទុក", exact: true }).click();
   const publicLink = page.getByText(/https?:\/\/[^\s]+\/e\/[A-Za-z0-9_-]+/);
@@ -188,12 +234,49 @@ test("owner creates, publishes and manages an event; guest RSVPs; staff checks i
   }
   await expect(page.getByText("$0.30").first()).toBeVisible();
 
+  // The design tab exports style settings and keeps the live invitation pinned until republish.
+  await page.goto(`/dashboard/events/${eventId}/templates`);
+  await expect(page.getByRole("navigation", { name: "Event" }).getByRole("link", { name: "គំរូធៀប", exact: true }))
+    .toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("heading", { name: "ភ្លុកដំរី និងស្រាសំប៉ាញ", exact: true })).toBeVisible();
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("link", { name: "ទាញយកគំរូ (JSON)", exact: true }).click(),
+  ]);
+  expect(download.suggestedFilename()).toBe("theab-ivory-champagne.json");
+  const designText = fs.readFileSync(await download.path(), "utf8");
+  const design = JSON.parse(designText);
+  expect(design).toMatchObject({
+    format: "theab-invitation-design",
+    template: { slug: "ivory-champagne" },
+    appearance: { palette: { bg: "#F7F1E6" } },
+  });
+  expect(designText).not.toMatch(/E2E Wedding|Private:|Dinner reception|api\/media/);
+  await page.locator("#event-template").selectOption("marble-rose");
+  await page.getByRole("button", { name: "រក្សាទុកគំរូ", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "ថ្មម៉ាប និងផ្កាកុលាបក្រហមទុំ", exact: true })).toBeVisible();
+  const draftLink = page.getByRole("link", { name: "មើលព្រាងក្នុងផ្ទាំងថ្មី", exact: true });
+  await expect(draftLink).toHaveAttribute("target", "_blank");
+  const draftPreview = await context.newPage();
+  await draftPreview.goto((await draftLink.getAttribute("href"))!);
+  await expect(draftPreview.locator(".inv-root")).toHaveAttribute("style", /--inv-bg:\s*#F6F3F0/i);
+  await draftPreview.close();
+  await guest.goto(link);
+  await expect(guest.locator(".inv-root")).toHaveAttribute("style", /--inv-bg:\s*#F7F1E6/i);
+  const republish = page.getByRole("button", { name: "ធ្វើបច្ចុប្បន្នភាពធៀប", exact: true });
+  await expect(republish).toBeVisible();
+  await republish.click();
+  await expect(republish).toHaveCount(0);
+  await guest.reload();
+  await expect(guest.locator(".inv-root")).toHaveAttribute("style", /--inv-bg:\s*#F6F3F0/i);
+
   // Tenant isolation
   const octx = await browser.newContext();
   const other = await octx.newPage();
   await register(other, "Other", `other-${uid}@example.com`);
   expect((await other.goto(`/dashboard/events/${eventId}/guests`))!.status()).toBe(404);
   expect((await other.request.get(`/api/events/${eventId}/export?kind=guests`)).status()).toBe(404);
+  expect((await other.request.get(`/api/events/${eventId}/template`)).status()).toBe(404);
   await other.goto("/admin");
   expect(other.url()).not.toContain("/admin");
 

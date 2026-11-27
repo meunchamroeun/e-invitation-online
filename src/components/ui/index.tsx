@@ -1,29 +1,6 @@
-import { forwardRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
+import { forwardRef, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
-
-type BtnVariant = "primary" | "gold" | "outline" | "ghost" | "danger" | "soft";
-const BTN: Record<BtnVariant, string> = {
-  primary: "bg-ink text-white hover:bg-black shadow-[0_1px_0_rgba(255,255,255,.12)_inset]",
-  gold: "bg-gold text-white hover:bg-gold-2",
-  outline: "border border-line-2 bg-white text-ink hover:border-ink/40",
-  ghost: "text-ink-2 hover:bg-black/[.04]",
-  danger: "bg-danger text-white hover:brightness-95",
-  soft: "bg-gold-soft text-gold-2 hover:brightness-[.97]",
-};
-const SIZE = { sm: "h-8 px-3 text-[13px]", md: "h-10 px-4 text-sm", lg: "h-12 px-6 text-[15px]" };
-
-export function buttonClass(variant: BtnVariant = "primary", size: keyof typeof SIZE = "md", className?: string) {
-  return cn(
-    "inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-full font-medium transition-[background,border,filter,transform] active:scale-[.98] disabled:pointer-events-none disabled:opacity-50",
-    BTN[variant], SIZE[size], className,
-  );
-}
-
-export const Button = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement> & { variant?: BtnVariant; size?: keyof typeof SIZE }>(
-  function Button({ variant = "primary", size = "md", className, ...rest }, ref) {
-    return <button ref={ref} className={buttonClass(variant, size, className)} {...rest} />;
-  },
-);
+export { Button, buttonClass } from "./button";
 
 const field = "w-full rounded-xl border border-line-2 bg-white px-3.5 text-[15px] text-ink placeholder:text-muted/70 transition-[border,box-shadow] focus:border-gold focus:outline-none focus:ring-4 focus:ring-gold/15 disabled:bg-paper";
 

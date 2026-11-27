@@ -16,7 +16,7 @@ const loadPublicEvent = cache(async (slug: string) => {
   if (!/^[A-Za-z0-9_-]{6,40}$/.test(slug)) return null;
   const [ev] = await db.select().from(schema.events).where(and(eq(schema.events.publicSlug, slug), eq(schema.events.isPublic, true), eq(schema.events.status, "published"), isNull(schema.events.deletedAt)));
   const doc = InvitationDocSchema.safeParse(ev?.published);
-  const tpl = ev ? getTemplate(ev.templateSlug) : undefined;
+  const tpl = ev ? getTemplate(ev.publishedTemplateSlug ?? ev.templateSlug) : undefined;
   return ev && doc.success && tpl ? { ev, doc: doc.data, tpl } : null;
 });
 
@@ -39,5 +39,5 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
   if (!data) return <InviteUnavailable />;
   const { ev, doc, tpl } = data;
   const wishes = ev.wishesEnabled ? await approvedWishes(ev.id) : [];
-  return <InvitationRenderer template={tpl} doc={doc} event={eventInfo(ev)} mode="preview" slots={{ wishes: <WishesBlock token={null} d={dictionaries[doc.defaultLocale].invite} wishes={wishes} /> }} />;
+  return <InvitationRenderer template={tpl} doc={doc} event={eventInfo(ev)} mode="preview" slots={{ wishes: <WishesBlock token={null} publicSlug={ev.publicSlug} d={dictionaries[doc.defaultLocale].invite} wishes={wishes} /> }} />;
 }

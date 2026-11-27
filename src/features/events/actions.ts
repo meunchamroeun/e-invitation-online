@@ -9,6 +9,7 @@ import { db, schema } from "@/lib/db";
 import { requireUser } from "@/lib/auth/session";
 import { assertEvent } from "@/lib/auth/event-access";
 import { getTemplate, starterDoc, EVENT_TYPES } from "@/features/templates/registry";
+import { EventSettingsSchema, type EventSettingsInput } from "./settings-schema";
 import { getTemplatePolicy } from "@/features/templates/queries";
 import { InvitationDocSchema, l, type InvitationDoc } from "@/features/invitations/doc";
 import { zonedToUtc } from "@/i18n/format";
@@ -171,6 +172,22 @@ export async function saveDraftAction(eventId: string, baseRevision: number, doc
   return { ok: true, revision: res[0].revision };
 }
 
+export async function changeEventTemplateAction(eventId: string, revision: number, slug: string): Promise<ActionResult> {
+  const { event } = await assertEvent(eventId, "event.edit");
+  if (revision !== event.revision) return { ok: false, error: "conflict" };
+  const template = getTemplate(slug);
+  if (!template || template.category !== event.type || !(await getTemplatePolicy(template)).listed) {
+    return { ok: false, error: "template_unavailable" };
+  }
+  const updated = await db.update(schema.events)
+    .set({ templateSlug: template.slug, templateVersion: template.version, revision: revision + 1, updatedAt: new Date() })
+    .where(and(eq(schema.events.id, eventId), eq(schema.events.revision, revision), isNull(schema.events.deletedAt)))
+    .returning({ id: schema.events.id });
+  if (!updated.length) return { ok: false, error: "conflict" };
+  revalidatePath(`/dashboard/events/${eventId}`, "layout");
+  return { ok: true };
+}
+
 export async function publishAction(eventId: string): Promise<ActionResult> {
   const { user, event } = await assertEvent(eventId, "event.publish");
   const tpl = getTemplate(event.templateSlug);
@@ -180,7 +197,9 @@ export async function publishAction(eventId: string): Promise<ActionResult> {
   if (tier === "premium" && !plan.limits.premiumTemplates && owner.role !== "super_admin") return { ok: false, error: "plan_premium_template" };
   const doc = InvitationDocSchema.parse(event.draft);
   await db.transaction(async (tx) => {
-    await tx.update(schema.events).set({ published: doc, publishedAt: new Date(), status: "published", updatedAt: new Date() }).where(eq(schema.events.id, eventId));
+    await tx.update(schema.events).set({
+      published: doc, publishedTemplateSlug: event.templateSlug, publishedAt: new Date(), status: "published", updatedAt: new Date(),
+    }).where(eq(schema.events.id, eventId));
     await tx.insert(schema.invitationVersions).values({ eventId, kind: "publish", doc, createdBy: user.id });
   });
   await audit("event.publish", { actorId: user.id, eventId });
@@ -216,25 +235,9 @@ export async function restoreVersionAction(eventId: string, versionId: string): 
   return { ok: true };
 }
 
-const SettingsSchema = z.object({
-  title: z.string().trim().min(1).max(160),
-  organizerNotes: z.string().trim().max(2000).optional(),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  startTime: z.string().regex(/^\d{2}:\d{2}$/),
-  endTime: z.string().regex(/^(\d{2}:\d{2})?$/),
-  timezone: z.string().max(60),
-  venueName: z.string().trim().max(200),
-  venueAddress: z.string().trim().max(400),
-  mapUrl: z.string().trim().max(500).refine((v) => v === "" || /^https:\/\//.test(v)),
-  rsvpDeadline: z.string().regex(/^(\d{4}-\d{2}-\d{2})?$/),
-  allowMaybe: z.boolean(),
-  wishesEnabled: z.boolean(),
-  isPublic: z.boolean(),
-});
-
-export async function updateEventSettingsAction(eventId: string, input: z.input<typeof SettingsSchema>): Promise<ActionResult> {
+export async function updateEventSettingsAction(eventId: string, input: EventSettingsInput): Promise<ActionResult> {
   const { user, event } = await assertEvent(eventId, "event.edit");
-  const p = SettingsSchema.safeParse(input);
+  const p = EventSettingsSchema.safeParse(input);
   if (!p.success) return { ok: false, error: p.error.issues.map((i) => i.path.join(".")).join(", ") };
   const v = p.data;
   await db

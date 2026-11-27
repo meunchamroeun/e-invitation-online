@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { CalendarPlus, ChevronLeft, ChevronRight, Copy, Download, MapPin, Mic, Music, Navigation, Scissors, Send, Wine, X, Flame as FlameIcon, Car } from "lucide-react";
 import type { Section, LText } from "@/features/invitations/doc";
 import { pick } from "@/features/invitations/doc";
@@ -21,6 +21,7 @@ export type EventInfo = {
   endsAt: string | null;
   timezone: string;
   venueName: string | null;
+  previewVenueName?: LText;
   venueAddress: string | null;
   mapUrl: string | null;
   allowMaybe: boolean;
@@ -91,6 +92,10 @@ export function Divider({ ctx, width = 220 }: { ctx: Ctx; width?: number }) {
       )}
       {k === "leaf" && <ChanFlower size={28} />}
       {k === "gold" && <div style={{ color: "var(--inv-accent)" }}><GoldDivider width={width} /></div>}
+      {k === "curtains" && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src="/templates/champagne-curtains/divider.png" alt="" className="h-auto w-[200px] select-none object-contain" />
+      )}
     </div>
   );
 }
@@ -135,6 +140,7 @@ export function Card({ ctx, children, className = "" }: { ctx: Ctx; children: Re
     leaf: { cls: "rounded-[999px/48px] px-8 py-8 sm:px-12", style: { background: "linear-gradient(180deg, color-mix(in oklab, var(--inv-surface) 92%, #c9a25e), var(--inv-surface) 45%, color-mix(in oklab, var(--inv-surface) 88%, #b48a46))", boxShadow: "0 10px 26px -16px rgba(60,40,10,.45)" } },
     rounded: { cls: "rounded-3xl p-6 sm:p-8", style: { background: "var(--inv-surface)", boxShadow: "0 8px 0 0 color-mix(in oklab, var(--inv-accent) 70%, transparent)" } },
     marble: { cls: "p-7 sm:p-10", style: { background: "color-mix(in oklab, var(--inv-surface) 82%, transparent)", border: "1px solid color-mix(in oklab, var(--inv-accent) 75%, transparent)", boxShadow: "inset 0 0 0 5px color-mix(in oklab, var(--inv-surface) 60%, transparent), inset 0 0 0 6px color-mix(in oklab, var(--inv-accent) 45%, transparent), 0 20px 40px -30px rgba(74,22,34,.35)" } },
+    curtains: { cls: "rounded-2xl p-6 sm:p-8 backdrop-blur-sm", style: { background: "color-mix(in oklab, var(--inv-surface) 76%, transparent)", border: "1px solid color-mix(in oklab, var(--inv-primary) 26%, transparent)", boxShadow: "0 18px 40px -28px rgba(122, 74, 46, 0.22)" } },
   };
   const s = styles[c];
   if (c === "marble") {
@@ -185,6 +191,155 @@ function HeroSection({ s, ctx }: { s: Extract<Section, { type: "hero" }>; ctx: C
   const time = timeLine(ctx);
   const venue = ctx.event.venueName ?? "";
   const h = ctx.fam.hero;
+  const isPlanEssentialScratch =
+    ctx.t.slug === "ivory-scratch-lite" ||
+    ctx.t.slug === "navy-scratch" ||
+    ctx.t.slug === "crimson-lovestory";
+
+  if (isPlanEssentialScratch) {
+    const isDarkScratch = ctx.t.slug === "navy-scratch" || ctx.t.slug === "crimson-lovestory";
+    const artworkImg = isDarkScratch ? "/templates/planessential/art-work.png" : "/templates/planessential/art-work-dark.png";
+    const goldColor = isDarkScratch ? "#F0D48F" : "#B4813F";
+    const ruleColor = isDarkScratch ? "rgba(240,212,143,0.45)" : "rgba(180,129,63,0.45)";
+    const guestLabel = ctx.guest
+      ? guestFullName(ctx)
+      : ctx.locale === "km" ? "ភ្ញៀវកិត្តិយស" : "Honored Guest";
+    return (
+      <div className="relative mx-auto flex min-h-[100svh] max-w-md flex-col items-center justify-start overflow-hidden px-6 pb-14 pt-16 text-center sm:pt-20">
+        <Reveal>
+          <div className="relative mx-auto flex items-center justify-center">
+            <span
+              aria-hidden
+              className="inv-shimmer pointer-events-none absolute h-44 w-44 rounded-full"
+              style={{
+                background: isDarkScratch
+                  ? "radial-gradient(circle, rgba(240,212,143,0.16) 0%, transparent 70%)"
+                  : "radial-gradient(circle, rgba(245,205,120,0.22) 0%, transparent 70%)",
+              }}
+            />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={artworkImg} alt="Save the Date" className="inv-float inv-shimmer relative h-36 w-auto object-contain sm:h-40" />
+          </div>
+        </Reveal>
+
+        <Reveal delay={100}>
+          <p className="mt-4 text-xs font-semibold tracking-wider opacity-85 sm:text-sm" style={{ color: goldColor }}>
+            {k}
+          </p>
+        </Reveal>
+
+        <Reveal delay={160}>
+          <h1 className="mt-3 text-2xl leading-[1.85] sm:text-3xl" style={{ ...display, color: goldColor }}>
+            {names}
+          </h1>
+          {namesEn ? (
+            <p className="mt-1 text-lg italic opacity-80" style={{ ...latin, ...muted }}>
+              {namesEn}
+            </p>
+          ) : null}
+        </Reveal>
+
+        <Reveal delay={230}>
+          <div className="mx-auto mt-7 w-full max-w-[300px]">
+            <div className="flex origin-center items-center gap-3" style={{ animation: "inv-rule-grow 0.8s cubic-bezier(.2,.8,.2,1) .25s both" }}>
+              <span className="h-px flex-1" style={{ background: ruleColor }} />
+              <span className="h-1.5 w-1.5 rotate-45" style={{ background: goldColor }} />
+              <span className="h-px flex-1" style={{ background: ruleColor }} />
+            </div>
+            <p className="mt-3 text-sm font-medium opacity-80" style={muted}>
+              {tagline || (ctx.locale === "km" ? "សូមគោរពអញ្ជើញ" : "We cordially invite")}
+            </p>
+            <p className="inv-glow mt-1.5 text-xl leading-[1.6]" style={{ ...display, color: goldColor }}>
+              {guestLabel}
+            </p>
+            <div className="mt-3 flex origin-center items-center gap-3" style={{ animation: "inv-rule-grow 0.8s cubic-bezier(.2,.8,.2,1) .25s both" }}>
+              <span className="h-px flex-1" style={{ background: ruleColor }} />
+              <span className="h-1.5 w-1.5 rotate-45" style={{ background: goldColor }} />
+              <span className="h-px flex-1" style={{ background: ruleColor }} />
+            </div>
+          </div>
+        </Reveal>
+
+        {date || time ? (
+          <Reveal delay={290}>
+            <p className="mt-6 text-sm font-semibold leading-relaxed sm:text-base" style={{ color: goldColor }}>
+              {[date, time].filter(Boolean).join(" · ")}
+            </p>
+          </Reveal>
+        ) : null}
+
+        <div className="mt-8 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-medium shadow-sm backdrop-blur-sm" style={{ borderColor: ruleColor, color: goldColor, background: isDarkScratch ? "rgba(11,26,58,0.55)" : "rgba(250,246,240,0.75)" }}>
+          <span className="animate-bounce">↓</span>
+          <span>{ctx.locale === "km" ? "សូមអូសចុះក្រោម" : "Scroll down"}</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (h === "moonlit") {
+    const isKhmer = ctx.locale === "km";
+    const namesFont = isKhmer ? display : latin;
+    const namePair = isKhmer ? names.match(/^(.+?)\s+(&|និង)\s+(.+)$/u) : null;
+    const nameSize = isKhmer
+      ? "text-[clamp(1.65rem,3.8cqi,2.6rem)] leading-[1.65]"
+      : "text-[clamp(1.7rem,5.6cqi,4.75rem)] leading-[1.45]";
+    const edge = "color-mix(in oklab, var(--inv-primary) 36%, transparent)";
+    return (
+      <div className="@container relative flex min-h-[100svh] items-center justify-center px-4 py-8" style={{
+        background: "radial-gradient(ellipse at 0% 50%, color-mix(in oklab, var(--inv-primary) 17%, transparent), transparent 60%)",
+      }}>
+        <div className="relative mx-auto grid w-full max-w-5xl gap-0.5 @min-[46rem]:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] @min-[46rem]:gap-3">
+          <div className="relative isolate aspect-[5/4] overflow-hidden p-1.5 @min-[46rem]:aspect-auto @min-[46rem]:p-2"
+            style={{ border: `1px solid ${edge}`, background: "var(--inv-bg)" }}>
+            {s.data.photo ? (
+              <div className="relative h-full min-h-0 overflow-hidden rounded-tl-[3rem] @min-[46rem]:min-h-[29rem] @min-[46rem]:rounded-tl-[6rem]">
+                <Photo src={s.data.photo} alt={names} label={isKhmer ? "រូបភាពគំរូ" : "Sample photo"}
+                  className="object-[center_24%]" kenBurns />
+              </div>
+            ) : (
+              <div aria-hidden className="grid h-full place-items-center rounded-tl-[3rem] @min-[46rem]:min-h-[29rem] @min-[46rem]:rounded-tl-[6rem]"
+                style={{ background: "radial-gradient(ellipse, var(--inv-surface), var(--inv-bg))", color: "var(--inv-primary)" }}>
+                <ChanFlower size={84} />
+              </div>
+            )}
+          </div>
+          <div className="relative isolate flex min-w-0 flex-col justify-center p-6 @min-[46rem]:p-10 @min-[62rem]:p-14" style={{
+            background: "var(--inv-surface)", border: `1px solid ${edge}`,
+            boxShadow: "0 24px 48px -40px rgb(0 0 0 / 0.6)",
+          }}>
+            <div aria-hidden className="absolute right-5 top-5 h-12 w-12 rounded-full border-r border-t opacity-30 @min-[46rem]:right-8 @min-[46rem]:top-8 @min-[46rem]:h-20 @min-[46rem]:w-20"
+              style={{ borderColor: "var(--inv-accent)" }} />
+            <Reveal><p className="max-w-[90%] text-sm @min-[46rem]:text-base" style={primary}>{k}</p></Reveal>
+            <Reveal delay={130}>
+              <h1 className={`mt-3 [overflow-wrap:anywhere] @min-[46rem]:mt-5 ${nameSize}`}
+                style={{ ...namesFont, color: "var(--inv-ink)" }}>
+                {namePair ? (
+                  <>
+                    <span className="block">{namePair[1]}</span>{" "}
+                    <span className="block">
+                      <span className="text-[0.56em]" style={primary}>{namePair[2] === "&" ? "និង" : namePair[2]}</span>{" "}
+                      {namePair[3]}
+                    </span>
+                  </>
+                ) : names}
+              </h1>
+            </Reveal>
+            {namesEn ? <Reveal delay={180}><p className="mt-2 text-xl italic" style={{ ...latin, ...muted }}>{namesEn}</p></Reveal> : null}
+            {tagline ? <Reveal delay={225}><p className="mt-2 max-w-sm text-sm leading-relaxed @min-[46rem]:mt-3" style={muted}>{tagline}</p></Reveal> : null}
+            {date || time || venue ? (
+              <Reveal delay={285}>
+                <div className="mt-6 border-t pt-4 text-sm @min-[46rem]:mt-8 @min-[46rem]:pt-5" style={{ borderColor: edge }}>
+                  {date ? <p className="font-medium" style={{ color: "var(--inv-accent)" }}>{date}</p> : null}
+                  {time || venue ? <p className="mt-1" style={muted}>{[time, venue].filter(Boolean).join(" · ")}</p> : null}
+                </div>
+              </Reveal>
+            ) : null}
+            <GuestBannerLeft ctx={ctx} />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (h === "frame") {
     return (
@@ -464,6 +619,92 @@ function HeroSection({ s, ctx }: { s: Extract<Section, { type: "hero" }>; ctx: C
     );
   }
 
+  if (h === "curtains") {
+    const goldText: React.CSSProperties = {
+      backgroundImage: "linear-gradient(180deg, #FBE0B6 0%, #E9A96E 100%)",
+      WebkitBackgroundClip: "text",
+      backgroundClip: "text",
+      WebkitTextFillColor: "transparent",
+      filter: "drop-shadow(1px 2px 0px #7A4A2E)",
+      boxDecorationBreak: "clone",
+      paddingBlock: "0.2em",
+    };
+    const guestLabel = ctx.guest
+      ? guestFullName(ctx)
+      : ctx.locale === "km" ? "ភ្ញៀវកិត្តិយស" : "Honored Guest";
+    return (
+      <div className="relative mx-auto flex min-h-[100svh] max-w-md flex-col items-center justify-between overflow-hidden px-5 pb-16 pt-14 text-center">
+        {s.data.photo ? (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0"
+            style={{
+              maskImage: "linear-gradient(black 70%, transparent 100%)",
+              WebkitMaskImage: "linear-gradient(black 70%, transparent 100%)",
+            }}
+          >
+            <Photo src={s.data.photo} alt={names} className="object-[center_20%]" kenBurns />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-black/35" />
+          </div>
+        ) : null}
+
+        <div className="relative z-10 w-full">
+          <Reveal>
+            <h1 className="text-2xl leading-[1.9] sm:text-3xl" style={{ ...display, ...goldText }}>
+              {k}
+            </h1>
+          </Reveal>
+          <Reveal delay={140}>
+            <p className="mt-1 text-lg leading-[1.8] sm:text-xl" style={{ ...display, ...goldText }}>
+              {names}
+            </p>
+          </Reveal>
+        </div>
+
+        <div className="relative z-10 mt-auto flex w-full flex-col items-center gap-3 pt-28">
+          {tagline ? (
+            <Reveal delay={200}>
+              <p className="text-base leading-[1.7] sm:text-lg" style={{ ...display, ...goldText }}>
+                {tagline}
+              </p>
+            </Reveal>
+          ) : null}
+          <Reveal delay={260}>
+            <div className="relative mx-auto flex aspect-[4/1] w-full max-w-[330px] items-center justify-center px-9">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/templates/champagne-curtains/name-frame.png"
+                alt=""
+                aria-hidden
+                className="pointer-events-none absolute inset-0 h-full w-full object-contain drop-shadow-[0_6px_14px_rgba(90,50,20,0.28)]"
+              />
+              <svg aria-hidden viewBox="0 0 24 24" className="inv-float absolute left-2 top-1 h-4 w-4 text-[#F6B931]">
+                <path fill="currentColor" d="M12 1l2.6 8.4L23 12l-8.4 2.6L12 23l-2.6-8.4L1 12l8.4-2.6z" />
+              </svg>
+              <svg aria-hidden viewBox="0 0 24 24" className="inv-float absolute bottom-1 right-2 h-3.5 w-3.5 text-[#F6B931]">
+                <path fill="currentColor" d="M12 1l2.6 8.4L23 12l-8.4 2.6L12 23l-2.6-8.4L1 12l8.4-2.6z" />
+              </svg>
+              <p className="relative z-10 truncate text-[15px] text-[#364153] sm:text-base" style={display}>
+                {guestLabel}
+              </p>
+            </div>
+          </Reveal>
+          {date || time ? (
+            <Reveal delay={320}>
+              <p className="text-[15px] font-semibold leading-relaxed sm:text-base" style={goldText}>
+                {[date, time].filter(Boolean).join(" · ")}
+              </p>
+            </Reveal>
+          ) : null}
+          <div className="mt-1 inline-flex items-center gap-2 rounded-full bg-black/30 px-4 py-1.5 text-xs text-white/95 backdrop-blur-sm">
+            <span className="animate-bounce">↓</span>
+            <span>{ctx.locale === "km" ? "សូមអូសចុះក្រោម" : "Scroll down"}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // memorial
   return (
     <div className="relative flex min-h-[90svh] flex-col items-center justify-center px-6 py-16 text-center">
@@ -542,6 +783,26 @@ function InvitationSection({ s, ctx }: { s: Extract<Section, { type: "invitation
 }
 
 function CoupleSection({ s, ctx }: { s: Extract<Section, { type: "couple" }>; ctx: Ctx }) {
+  if (ctx.fam.hero === "curtains") {
+    return (
+      <Shell ctx={ctx} className="py-10 sm:py-14">
+        <Reveal>
+          <div className="mx-auto grid max-w-md grid-cols-[1fr_44px_1fr] items-center gap-2 text-center">
+            <div>
+              <p className="text-xs sm:text-sm" style={primary}>{ctx.tx(s.data.left.role)}</p>
+              <p className="mt-1 text-base leading-[1.8] sm:text-lg" style={{ ...display, ...primary }}>{ctx.tx(s.data.left.name)}</p>
+            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/templates/champagne-curtains/heart-gold.png" alt="" aria-hidden className="mx-auto h-10 w-10 object-contain" />
+            <div>
+              <p className="text-xs sm:text-sm" style={primary}>{ctx.tx(s.data.right.role)}</p>
+              <p className="mt-1 text-base leading-[1.8] sm:text-lg" style={{ ...display, ...primary }}>{ctx.tx(s.data.right.name)}</p>
+            </div>
+          </div>
+        </Reveal>
+      </Shell>
+    );
+  }
   const shape = ctx.fam.hero === "arch" ? "rounded-t-[999px]" : ctx.fam.hero === "round" || ctx.fam.hero === "frame" ? "rounded-full" : ctx.fam.hero === "leaf" ? "rounded-[999px/50px]" : "rounded-sm";
   const person = (p: typeof s.data.left, i: number) => (
     <Reveal key={i} delay={i * 140} className="text-center">
@@ -564,6 +825,43 @@ function CoupleSection({ s, ctx }: { s: Extract<Section, { type: "couple" }>; ct
   );
 }
 
+function KbachCta({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="relative mx-auto flex aspect-[5/1] w-[250px] items-center justify-center transition-transform active:scale-95 sm:w-[270px]"
+    >
+      <svg aria-hidden viewBox="0 0 260 52" className="absolute inset-0 h-full w-full drop-shadow-[0_4px_10px_rgba(122,74,46,0.28)]">
+        <defs>
+          <linearGradient id="kbach-btn-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#FCD3A4" />
+            <stop offset="45%" stopColor="#FAB96D" />
+            <stop offset="55%" stopColor="#F4AC57" />
+            <stop offset="100%" stopColor="#CC9049" />
+          </linearGradient>
+        </defs>
+        <path
+          d="M16 4 H244 L256 26 L244 48 H16 L4 26 Z"
+          fill="url(#kbach-btn-grad)"
+          stroke="#A2723A"
+          strokeWidth="1.6"
+        />
+        <path
+          d="M18 8 H242 L251 26 L242 44 H18 L9 26 Z"
+          fill="none"
+          stroke="#FFFFFF"
+          strokeOpacity="0.45"
+          strokeWidth="1"
+        />
+      </svg>
+      <span className="relative z-10 px-6 text-xs text-white sm:text-sm" style={{ ...display, textShadow: "0 1px 2px rgba(0,0,0,0.3)" }}>
+        {label}
+      </span>
+    </button>
+  );
+}
+
 function CountdownSection({ s, ctx }: { s: Extract<Section, { type: "countdown" }>; ctx: Ctx }) {
   const target = ctx.event.startsAt ? new Date(ctx.event.startsAt).getTime() : null;
   const [now, setNow] = useState<number | null>(null);
@@ -575,6 +873,72 @@ function CountdownSection({ s, ctx }: { s: Extract<Section, { type: "countdown" 
   if (!target) return null;
   const c = countdownParts(target, now ?? target);
   const cells: [number, string][] = [[c.days, ctx.d.days], [c.hours, ctx.d.hours], [c.minutes, ctx.d.minutes], [c.seconds, ctx.d.seconds]];
+  const isPlanEssentialTypographic =
+    ctx.fam.hero === "curtains" ||
+    ctx.t.slug === "ivory-scratch-lite" ||
+    ctx.t.slug === "navy-scratch" ||
+    ctx.t.slug === "crimson-lovestory";
+  if (isPlanEssentialTypographic && ctx.event.startsAt) {
+    const zp = zonedParts(ctx.event.startsAt, ctx.event.timezone);
+    const dObj = new Date(ctx.event.startsAt);
+    const monthLabel = new Intl.DateTimeFormat(ctx.locale === "km" ? "km-KH" : "en-US", { timeZone: ctx.event.timezone, month: "long" }).format(dObj);
+    const weekdayLabel = new Intl.DateTimeFormat(ctx.locale === "km" ? "km-KH" : "en-US", { timeZone: ctx.event.timezone, weekday: "long" }).format(dObj);
+    const dayStr = num(zp.day, ctx.locale, ctx.khNum);
+    const yearStr = num(zp.year, ctx.locale, ctx.khNum).replace(/,/g, "");
+    const timeStr = timeLine(ctx);
+    return (
+      <Shell ctx={ctx} className="py-10 sm:py-14">
+        <div className="mx-auto max-w-md text-center">
+          <Reveal>
+            <div className="mb-10 flex flex-col items-center gap-2" style={primary}>
+              <p className="text-base sm:text-lg" style={display} suppressHydrationWarning>{monthLabel}</p>
+              <div className="flex items-center justify-center gap-4">
+                <span className="w-28 border-y py-1 text-xs font-semibold sm:text-sm" style={{ borderColor: "var(--inv-primary)" }} suppressHydrationWarning>{weekdayLabel}</span>
+                <span className="num text-5xl leading-none" style={display} suppressHydrationWarning>{dayStr}</span>
+                <span className="w-28 border-y py-1 text-xs font-semibold sm:text-sm" style={{ borderColor: "var(--inv-primary)" }} suppressHydrationWarning>{timeStr}</span>
+              </div>
+              <p className="num text-base sm:text-lg" style={display} suppressHydrationWarning>{yearStr}</p>
+            </div>
+          </Reveal>
+
+          <Heading ctx={ctx}>{ctx.tx(s.data.heading)}</Heading>
+          {now !== null && c.done ? (
+            <p className="text-center text-lg" style={primary}>{ctx.d.started}</p>
+          ) : (
+            <div className="mx-auto grid max-w-sm grid-cols-4 gap-2.5 sm:gap-3" aria-live="off">
+              {cells.map(([v, label], idx) => (
+                <Reveal key={label} delay={idx * 75}>
+                  <div
+                    className="relative flex aspect-square flex-col items-center justify-center rounded-[1.35rem] text-white shadow-md transition-transform duration-300 hover:-translate-y-0.5"
+                    style={{ background: "color-mix(in oklab, var(--inv-primary) 90%, transparent)" }}
+                  >
+                    <span aria-hidden className="pointer-events-none absolute inset-[4px] rounded-[1.05rem] border border-white/55" />
+                    <span className="num relative text-2xl leading-tight sm:text-3xl" style={display} suppressHydrationWarning>
+                      {now === null ? "—" : num(String(v).padStart(2, "0"), ctx.locale, ctx.khNum)}
+                    </span>
+                    <span className="relative mt-0.5 text-[11px] sm:text-xs" style={display}>{label}</span>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+          )}
+          <div className="mt-7">
+            <KbachCta
+              label={ctx.locale === "km" ? "កត់ចូលក្នុងប្រតិទិនអ្នក" : "Add to Calendar"}
+              onClick={() => {
+                const blob = new Blob([icsFor(ctx)], { type: "text/calendar" });
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(blob);
+                a.download = "invitation.ics";
+                a.click();
+                URL.revokeObjectURL(a.href);
+              }}
+            />
+          </div>
+        </div>
+      </Shell>
+    );
+  }
   return (
     <Shell ctx={ctx}>
       <Heading ctx={ctx}>{ctx.tx(s.data.heading)}</Heading>
@@ -657,7 +1021,31 @@ function StorySection({ s, ctx }: { s: Extract<Section, { type: "story" }>; ctx:
 
 function GallerySection({ s, ctx }: { s: Extract<Section, { type: "gallery" }>; ctx: Ctx }) {
   const [open, setOpen] = useState<number | null>(null);
+  const [slide, setSlide] = useState(0);
+  const [instant, setInstant] = useState(false);
+  const [paused, setPaused] = useState(false);
   const photos = s.data.photos;
+  const loop = photos.length > 1;
+  const track = loop ? [...photos, photos[0]] : photos;
+
+  useEffect(() => {
+    if (!loop || paused || open !== null || ctx.mode === "editor") return;
+    const id = window.setInterval(() => {
+      setInstant(false);
+      setSlide((i) => (i >= photos.length ? 1 : i + 1));
+    }, 2800);
+    return () => window.clearInterval(id);
+  }, [loop, photos.length, paused, open, ctx.mode]);
+
+  useEffect(() => {
+    if (!loop || slide !== photos.length) return;
+    const t = window.setTimeout(() => {
+      setInstant(true);
+      setSlide(0);
+    }, 1000);
+    return () => window.clearTimeout(t);
+  }, [loop, slide, photos.length]);
+
   useEffect(() => {
     if (open === null) return;
     const onKey = (e: KeyboardEvent) => {
@@ -669,28 +1057,139 @@ function GallerySection({ s, ctx }: { s: Extract<Section, { type: "gallery" }>; 
     return () => window.removeEventListener("keydown", onKey);
   }, [open, photos.length]);
   const [touchX, setTouchX] = useState<number | null>(null);
+  const [slideTouchX, setSlideTouchX] = useState<number | null>(null);
   if (!photos.length) return null;
+  const active = slide % photos.length;
+  const goTo = (next: number) => {
+    setInstant(false);
+    setSlide((next + photos.length) % photos.length);
+  };
   return (
     <Shell ctx={ctx} narrow={false}>
       <Heading ctx={ctx}>{ctx.tx(s.data.heading)}</Heading>
-      <div className="columns-2 gap-3 sm:columns-3 [&>*]:mb-3">
-        {photos.map((p, i) => (
-          <button key={i} onClick={() => setOpen(i)} className="block w-full break-inside-avoid overflow-hidden rounded-sm focus-visible:outline-2" aria-label={`${ctx.tx(p.caption) || "Photo"} ${i + 1}`}>
-            <div className={i % 3 === 0 ? "aspect-[3/4]" : i % 3 === 1 ? "aspect-square" : "aspect-[4/5]"}>
-              <Photo src={p.src} alt={ctx.tx(p.caption) || `Photo ${i + 1}`} className="transition-transform duration-700 hover:scale-105" />
+      <Reveal>
+        <div className="mx-auto max-w-md">
+          <div
+            className="relative touch-pan-y overflow-hidden rounded-2xl shadow-xl"
+            style={{ border: "1px solid color-mix(in oklab, var(--inv-accent) 40%, transparent)" }}
+            onTouchStart={(e) => { setPaused(true); setSlideTouchX(e.touches[0].clientX); }}
+            onTouchEnd={(e) => {
+              if (slideTouchX !== null) {
+                const dx = e.changedTouches[0].clientX - slideTouchX;
+                if (Math.abs(dx) > 35) goTo(active + (dx < 0 ? 1 : -1));
+              }
+              setSlideTouchX(null);
+              setPaused(false);
+            }}
+          >
+            <div
+              className={`flex will-change-transform ${instant ? "" : "transition-transform duration-1000 ease-[cubic-bezier(0.25,1,0.5,1)]"}`}
+              style={{ transform: `translate3d(-${slide * 100}%, 0, 0)` }}
+            >
+              {track.map((p, i) => {
+                const idx = i % photos.length;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setOpen(idx)}
+                    className="group relative w-full shrink-0 overflow-hidden focus-visible:outline-2"
+                    aria-label={`${ctx.tx(p.caption) || "Photo"} ${idx + 1}`}
+                  >
+                    <div className={ctx.fam.hero === "curtains" ? "aspect-[9/16]" : "aspect-[3/4]"}>
+                      <Photo
+                        src={p.src}
+                        alt={ctx.tx(p.caption) || `Photo ${idx + 1}`}
+                        kenBurns={idx === active}
+                        className="transition-transform duration-700 ease-out group-hover:scale-105"
+                      />
+                    </div>
+                  </button>
+                );
+              })}
             </div>
-          </button>
-        ))}
-      </div>
+
+            {loop ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => goTo(active - 1)}
+                  className="absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/35 p-2 text-white backdrop-blur-md transition-transform hover:scale-110 hover:bg-black/50"
+                  aria-label="Previous photo"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setInstant(false); setSlide((i) => (i >= photos.length ? 1 : i + 1)); }}
+                  className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/35 p-2 text-white backdrop-blur-md transition-transform hover:scale-110 hover:bg-black/50"
+                  aria-label="Next photo"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+                <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/35 px-3 py-1.5 backdrop-blur-md">
+                  {photos.map((_, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => goTo(i)}
+                      aria-label={`Slide ${i + 1}`}
+                      className={`h-1.5 rounded-full transition-all duration-500 ${i === active ? "w-6 bg-white" : "w-1.5 bg-white/50 hover:bg-white/80"}`}
+                    />
+                  ))}
+                </div>
+              </>
+            ) : null}
+          </div>
+
+          {loop ? (
+            <div className="mt-3.5 grid grid-cols-4 gap-2">
+              {photos.map((p, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => goTo(i)}
+                  className={`aspect-[3/4] overflow-hidden rounded-lg transition-all duration-300 ${i === active ? "scale-[1.02] opacity-100 ring-2 ring-offset-1" : "opacity-55 hover:opacity-85"}`}
+                  style={{ ["--tw-ring-color" as string]: "var(--inv-primary)" }}
+                  aria-label={`Select photo ${i + 1}`}
+                >
+                  <Photo src={p.src} alt="" label="" />
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </Reveal>
       {open !== null ? (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4"
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black/92 p-4 backdrop-blur-sm"
           onTouchStart={(e) => setTouchX(e.touches[0].clientX)}
           onTouchEnd={(e) => { if (touchX === null) return; const dx = e.changedTouches[0].clientX - touchX; if (Math.abs(dx) > 40) setOpen((o) => (o! + (dx < 0 ? 1 : -1) + photos.length) % photos.length); setTouchX(null); }}>
-          <button onClick={() => setOpen(null)} className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white" aria-label="Close"><X className="h-5 w-5" /></button>
-          <button onClick={() => setOpen((open - 1 + photos.length) % photos.length)} className="absolute left-2 rounded-full bg-white/10 p-2 text-white" aria-label="Previous"><ChevronLeft /></button>
-          <div className="aspect-[3/4] max-h-[82vh] w-full max-w-lg overflow-hidden"><Photo src={photos[open].src} alt={ctx.tx(photos[open].caption)} /></div>
-          <button onClick={() => setOpen((open + 1) % photos.length)} className="absolute right-2 rounded-full bg-white/10 p-2 text-white" aria-label="Next"><ChevronRight /></button>
-          {ctx.tx(photos[open].caption) ? <p className="absolute bottom-6 text-sm text-white/80">{ctx.tx(photos[open].caption)}</p> : null}
+          <div className="absolute left-4 top-4 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur-md">
+            {String(open + 1).padStart(2, "0")} · {String(photos.length).padStart(2, "0")}
+          </div>
+          <button onClick={() => setOpen(null)} className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white transition-colors hover:bg-white/20" aria-label="Close"><X className="h-5 w-5" /></button>
+          <div className="inv-lightbox-in relative flex w-full max-w-lg flex-1 items-center justify-center">
+            <button onClick={() => setOpen((open - 1 + photos.length) % photos.length)} className="absolute left-2 z-10 rounded-full bg-white/15 p-2.5 text-white backdrop-blur-md transition-transform hover:scale-110" aria-label="Previous"><ChevronLeft /></button>
+            <div key={open} className="inv-photo-fade aspect-[3/4] max-h-[72vh] w-full overflow-hidden rounded-xl shadow-2xl">
+              <Photo src={photos[open].src} alt={ctx.tx(photos[open].caption)} />
+            </div>
+            <button onClick={() => setOpen((open + 1) % photos.length)} className="absolute right-2 z-10 rounded-full bg-white/15 p-2.5 text-white backdrop-blur-md transition-transform hover:scale-110" aria-label="Next"><ChevronRight /></button>
+          </div>
+          {ctx.tx(photos[open].caption) ? <p className="mt-2 text-sm text-white/80">{ctx.tx(photos[open].caption)}</p> : null}
+          {photos.length > 1 ? (
+            <div className="mt-4 flex max-w-full gap-2 overflow-x-auto px-2 pb-1">
+              {photos.map((p, i) => (
+                <button
+                  key={i}
+                  onClick={() => setOpen(i)}
+                  className={`h-14 w-11 shrink-0 overflow-hidden rounded-md transition-all duration-300 ${i === open ? "scale-105 opacity-100 ring-2 ring-[#E9A96E]" : "opacity-50 hover:opacity-80"}`}
+                  aria-label={`Photo ${i + 1}`}
+                >
+                  <Photo src={p.src} alt="" label="" />
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
       ) : null}
     </Shell>
@@ -877,9 +1376,15 @@ function ThankYouSection({ s, ctx }: { s: Extract<Section, { type: "thankyou" }>
 
 function VideoSection({ s, ctx }: { s: Extract<Section, { type: "video" }>; ctx: Ctx }) {
   const hasFile = !!s.data.src && !s.data.src.startsWith("placeholder:");
-  const yt = s.data.youtube;
-  const [playYt, setPlayYt] = useState(false);
-  if (!hasFile && !yt && !s.data.poster) return null;
+  const autoPlay = s.data.autoPlay ?? true;
+  const videoRef = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v || !hasFile || !autoPlay) return;
+    v.muted = true;
+    v.play().catch(() => {});
+  }, [hasFile, autoPlay, s.data.src]);
+  if (!hasFile && !s.data.poster) return null;
   const frame = "relative aspect-video w-full overflow-hidden rounded-xl shadow-[0_30px_60px_-30px_rgba(0,0,0,.5)]";
   return (
     <Shell ctx={ctx} narrow={false}>
@@ -888,20 +1393,25 @@ function VideoSection({ s, ctx }: { s: Extract<Section, { type: "video" }>; ctx:
         <div className="mx-auto max-w-3xl">
           {hasFile ? (
             <div className={frame} style={{ background: "#000" }}>
-              <video className="h-full w-full object-contain" controls playsInline preload="metadata" poster={s.data.poster && !s.data.poster.startsWith("placeholder:") ? s.data.poster : undefined} src={s.data.src} />
-            </div>
-          ) : yt ? (
-            <div className={frame} style={{ background: "#000" }}>
-              {playYt ? (
-                <iframe className="h-full w-full" src={`https://www.youtube-nocookie.com/embed/${yt}?autoplay=1&rel=0&playsinline=1`} title={ctx.tx(s.data.heading) || "Video"} allow="autoplay; encrypted-media; picture-in-picture; fullscreen" referrerPolicy="strict-origin-when-cross-origin" />
-              ) : (
-                // Click-to-load: no third-party request (or tracking) until the guest chooses to play.
-                <button type="button" onClick={() => setPlayYt(true)} className="group relative h-full w-full" aria-label="Play video">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={`https://i.ytimg.com/vi/${yt}/hqdefault.jpg`} alt="" className="h-full w-full object-cover opacity-90" loading="lazy" referrerPolicy="no-referrer" />
-                  <span className="absolute inset-0 flex items-center justify-center"><span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/90 shadow-xl transition-transform group-hover:scale-110"><svg viewBox="0 0 24 24" width="26" height="26"><path d="M8 5v14l11-7z" fill="var(--inv-primary)" /></svg></span></span>
-                </button>
-              )}
+              <video
+                ref={videoRef}
+                key={s.data.src}
+                className="h-full w-full object-contain"
+                controls
+                playsInline
+                preload="auto"
+                autoPlay={autoPlay}
+                muted={autoPlay}
+                loop={autoPlay}
+                onCanPlay={(e) => {
+                  if (autoPlay) {
+                    e.currentTarget.muted = true;
+                    e.currentTarget.play().catch(() => {});
+                  }
+                }}
+                poster={s.data.poster && !s.data.poster.startsWith("placeholder:") ? s.data.poster : undefined}
+                src={s.data.src}
+              />
             </div>
           ) : (
             <div className={frame}><Photo src={s.data.poster} alt={ctx.tx(s.data.heading)} /></div>

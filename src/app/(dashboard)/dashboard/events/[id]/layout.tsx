@@ -13,10 +13,14 @@ export default async function EventLayout({ children, params }: { children: Reac
   const { event, role } = await requireEvent(id, "event.view");
   const { t, locale } = await getI18n();
   const d = t.dash;
-  const dirty = event.status === "published" && JSON.stringify(event.draft) !== JSON.stringify(event.published);
+  const dirty = event.status === "published" && (
+    event.templateSlug !== (event.publishedTemplateSlug ?? event.templateSlug) ||
+    JSON.stringify(event.draft) !== JSON.stringify(event.published)
+  );
   const allowed = [
     "overview",
     can(role, "event.edit") && "builder",
+    can(role, "event.edit") && "templates",
     can(role, "guests.view") && "guests",
     can(role, "guests.view") && "rsvp",
     can(role, "seating.edit") && "seating",

@@ -20,8 +20,8 @@ export default async function RsvpPage({ params }: { params: Promise<{ id: strin
     .select({ r: schema.rsvpResponses, name: schema.guests.fullName, khmer: schema.guests.khmerName, guestId: schema.guests.id, allowed: schema.guests.allowedAttendees, current: schema.guests.rsvpStatus })
     .from(schema.rsvpResponses).innerJoin(schema.guests, eq(schema.guests.id, schema.rsvpResponses.guestId))
     .where(eq(schema.rsvpResponses.eventId, id)).orderBy(desc(schema.rsvpResponses.createdAt)).limit(200);
-  const wishes = await db.select({ w: schema.guestWishes, name: schema.guests.fullName }).from(schema.guestWishes)
-    .innerJoin(schema.guests, eq(schema.guests.id, schema.guestWishes.guestId)).where(and(eq(schema.guestWishes.eventId, id))).orderBy(desc(schema.guestWishes.createdAt)).limit(200);
+  const wishes = await db.select({ w: schema.guestWishes, fullName: schema.guests.fullName }).from(schema.guestWishes)
+    .leftJoin(schema.guests, eq(schema.guests.id, schema.guestWishes.guestId)).where(and(eq(schema.guestWishes.eventId, id))).orderBy(desc(schema.guestWishes.createdAt)).limit(200);
   const n = (x: number) => num(x, locale);
   const label = (st: string) => ({ attending: d.attending, declined: d.declined, maybe: d.maybe, pending: d.pending } as Record<string, string>)[st] ?? st;
   return (
@@ -56,11 +56,11 @@ export default async function RsvpPage({ params }: { params: Promise<{ id: strin
       <section>
         <h2 className="mb-3 font-semibold">{km ? "ពាក្យជូនពរ (ត្រូវការការអនុម័ត)" : "Wishes (moderated)"}</h2>
         <div className="grid gap-3 md:grid-cols-2">
-          {wishes.length ? wishes.map(({ w, name }) => (
+          {wishes.length ? wishes.map(({ w, fullName }) => (
             <div key={w.id} className="rounded-2xl border border-line bg-white p-4">
               <p className="whitespace-pre-line text-sm">“{w.message}”</p>
               <div className="mt-3 flex items-center justify-between gap-2">
-                <span className="text-xs text-muted">— {name}</span>
+                <span className="text-xs text-muted">— {fullName ?? w.guestName ?? "Guest"}</span>
                 {can(role, "event.edit") ? <WishModeration eventId={id} wishId={w.id} status={w.status} locale={locale} /> : null}
               </div>
             </div>

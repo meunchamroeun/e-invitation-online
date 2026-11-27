@@ -18,10 +18,10 @@ export const LATIN_FONT: Record<LatinFont, string> = {
 };
 
 export type FamilyTokens = {
-  hero: "frame" | "arch" | "night" | "round" | "split" | "band" | "leaf" | "editorial" | "festive" | "landscape" | "memorial" | "marble";
-  divider: "kbach" | "lotus" | "weave" | "rule" | "dots" | "leaf" | "flame" | "gold";
-  card: "bordered" | "soft" | "glass" | "pill" | "flat" | "leaf" | "rounded" | "marble";
-  bg: "chan" | "grain" | "stars" | "none" | "confetti" | "lotus" | "marble";
+  hero: "frame" | "arch" | "night" | "round" | "split" | "band" | "leaf" | "editorial" | "festive" | "landscape" | "memorial" | "marble" | "moonlit" | "curtains";
+  divider: "kbach" | "lotus" | "weave" | "rule" | "dots" | "leaf" | "flame" | "gold" | "curtains";
+  card: "bordered" | "soft" | "glass" | "pill" | "flat" | "leaf" | "rounded" | "marble" | "curtains";
+  bg: "chan" | "grain" | "stars" | "none" | "confetti" | "lotus" | "marble" | "curtains";
   align: "center" | "left";
   /** Heading scale for Khmer display font (Moul is visually larger). */
   headingClass: string;
@@ -43,6 +43,8 @@ export const FAMILIES: Record<Family, FamilyTokens> = {
   festive: { hero: "festive", divider: "dots", card: "rounded", bg: "confetti", align: "center", headingClass: "text-3xl sm:text-4xl", frameCorners: false, particles: "confetti", reveal: "zoom" },
   village: { hero: "landscape", divider: "rule", card: "soft", bg: "grain", align: "center", headingClass: "text-2xl sm:text-4xl", frameCorners: false, particles: "leaves", reveal: "up" },
   marble: { hero: "marble", divider: "gold", card: "marble", bg: "marble", align: "center", headingClass: "text-[1.6rem] sm:text-3xl", frameCorners: false, particles: "petals", reveal: "blur" },
+  moonlit: { hero: "moonlit", divider: "rule", card: "bordered", bg: "grain", align: "center", headingClass: "text-2xl sm:text-4xl", frameCorners: false, particles: "stars", reveal: "fade" },
+  curtains: { hero: "curtains", divider: "curtains", card: "curtains", bg: "curtains", align: "center", headingClass: "text-[1.35rem] sm:text-[1.7rem] leading-[1.7]", frameCorners: false, particles: "petals", reveal: "up" },
   memorial: { hero: "memorial", divider: "lotus", card: "flat", bg: "none", align: "center", headingClass: "text-2xl sm:text-[1.75rem]", frameCorners: false, particles: "none", reveal: "fade" },
 };
 

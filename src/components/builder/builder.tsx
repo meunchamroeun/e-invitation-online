@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { Tooltip } from "@base-ui/react/tooltip";
+import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createStore, useStore } from "zustand";
 import {
   ArrowLeft, Check, CloudOff, Copy, Eye, EyeOff, GripVertical, History as HistoryIcon, Layers, Loader2, Monitor, Palette, Pencil, Plus, Redo2, RotateCcw, Smartphone, Tablet, Trash2, Undo2, AlertTriangle,
 } from "lucide-react";
@@ -20,21 +23,31 @@ import { PublishButton } from "@/components/dashboard/publish-button";
 import { Frame } from "./frame";
 import { FitDevice, FinishPicker, type Finish } from "@/components/ui/device-frame";
 import { isDark } from "@/components/invitation/theme";
-import { historyReducer, initHistory } from "./history";
+import { historyReducer, initHistory, type HistoryAction } from "./history";
 import { SectionEditor, MediaPicker, type EditorCtx, type MediaItem } from "./section-editor";
 import { cn } from "@/lib/utils";
 
 type SaveState = "saved" | "dirty" | "saving" | "error" | "conflict";
 type Device = "mobile" | "tablet" | "desktop";
 
-export function Builder(props: {
+type BuilderProps = {
   eventId: string; eventTitle: string; initialDoc: InvitationDoc; initialRevision: number; templateSlug: string; templateSlugs: string[]; event: EventInfo;
   media: MediaItem[]; locale: "km" | "en"; giftLocked: boolean; canEditGift: boolean; canPublish: boolean; published: boolean;
-}) {
+};
+
+export function Builder(props: BuilderProps) {
+  const [client] = useState(() => new QueryClient());
+  return <QueryClientProvider client={client}><BuilderEditor key={props.eventId} {...props} /></QueryClientProvider>;
+}
+
+function BuilderEditor(props: BuilderProps) {
   const L = (km: string, en: string) => (props.locale === "km" ? km : en);
   const router = useRouter();
-  const [h, dispatch] = useReducer(historyReducer, props.initialDoc, initHistory);
-  const doc = h.present;
+  const [history] = useState(() => createStore(() => initHistory(props.initialDoc)));
+  const doc = useStore(history, (state) => state.present);
+  const canUndo = useStore(history, (state) => state.past.length > 0);
+  const canRedo = useStore(history, (state) => state.future.length > 0);
+  const dispatch = useCallback((action: HistoryAction) => history.setState((state) => historyReducer(state, action), true), [history]);
   const [tplSlug, setTplSlug] = useState(props.templateSlug);
   const template = getTemplate(tplSlug)!;
   const [selected, setSelected] = useState<string | null>(doc.sections.find((s) => s.type === "hero")?.id ?? null);
@@ -50,7 +63,7 @@ export function Builder(props: {
   const savedJson = useRef(JSON.stringify(props.initialDoc) + props.templateSlug);
   const frameWrap = useRef<HTMLDivElement>(null);
 
-  const set = useCallback((next: InvitationDoc, key?: string) => dispatch({ type: "set", doc: next, key }), []);
+  const set = useCallback((next: InvitationDoc, key?: string) => dispatch({ type: "set", doc: next, key }), [dispatch]);
   const updateSection = useCallback((id: string, data: unknown, key: string) => {
     set({ ...doc, sections: doc.sections.map((s) => (s.id === id ? ({ ...s, data } as Section) : s)) }, key);
   }, [doc, set]);
@@ -99,7 +112,7 @@ export function Builder(props: {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [doc, tplSlug, persist]);
+  }, [doc, tplSlug, persist, dispatch]);
 
   /* ---- section ops ---- */
   const newId = () => `s${Math.random().toString(36).slice(2, 9)}`;
@@ -246,15 +259,26 @@ export function Builder(props: {
     </div>
   );
 
-  const [versions, setVersions] = useState<{ id: string; kind: string; createdAt: Date }[] | null>(null);
+  const queryClient = useQueryClient();
+  const versionsKey = ["invitation-versions", props.eventId] as const;
+  const versions = useQuery({
+    queryKey: versionsKey, queryFn: () => listVersionsAction(props.eventId),
+    enabled: panel === "versions", retry: false,
+  });
   const [restoring, startRestore] = useTransition();
   const VersionsPanel = (
     <div className="p-4">
       <p className="mb-3 text-xs text-muted">{L("កំណែនីមួយៗត្រូវបានរក្សាទុកពេលអ្នកផ្សព្វផ្សាយ", "A snapshot is kept every time you publish")}</p>
-      {versions === null ? <button className="text-sm text-gold-2 underline" onClick={async () => setVersions(await listVersionsAction(props.eventId))}>{L("ផ្ទុកប្រវត្តិ", "Load history")}</button> : null}
-      {versions?.length === 0 ? <p className="text-sm text-muted">{L("មិនទាន់មានកំណែ", "No versions yet")}</p> : null}
+      {versions.isLoading ? <p role="status" className="text-sm text-muted">{L("កំពុងផ្ទុកប្រវត្តិ…", "Loading history…")}</p> : null}
+      {versions.isError ? (
+        <div className="text-sm">
+          <p role="alert" className="text-danger">{L("មិនអាចផ្ទុកប្រវត្តិបានទេ", "Couldn’t load version history")}</p>
+          <button type="button" className="mt-2 text-gold-2 underline" onClick={() => void versions.refetch()}>{L("ព្យាយាមម្ដងទៀត", "Try again")}</button>
+        </div>
+      ) : null}
+      {versions.data?.length === 0 ? <p className="text-sm text-muted">{L("មិនទាន់មានកំណែ", "No versions yet")}</p> : null}
       <ul className="space-y-2">
-        {versions?.map((v) => (
+        {versions.data?.map((v) => (
           <li key={v.id} className="flex items-center justify-between rounded-xl border border-line bg-white px-3 py-2 text-sm">
             <span><span className="font-medium">{v.kind}</span><br /><span className="text-xs text-muted">{new Date(v.createdAt).toLocaleString()}</span></span>
             <button disabled={restoring} className="rounded-full border border-line-2 px-3 py-1 text-xs" onClick={() => {
@@ -313,18 +337,34 @@ export function Builder(props: {
         <Link href={`/dashboard/events/${props.eventId}`} className={iconBtn} aria-label={L("ត្រឡប់", "Back")}><ArrowLeft className="h-4 w-4" /></Link>
         <p className="hidden max-w-[180px] truncate text-sm font-semibold md:block">{props.eventTitle}</p>
         <div className="mx-1 hidden h-5 w-px bg-line md:block" />
-        <button className={iconBtn} onClick={() => dispatch({ type: "undo" })} disabled={!h.past.length} aria-label="Undo" title="Undo (Ctrl+Z)"><Undo2 className="h-4 w-4" /></button>
-        <button className={iconBtn} onClick={() => dispatch({ type: "redo" })} disabled={!h.future.length} aria-label="Redo" title="Redo (Ctrl+Shift+Z)"><Redo2 className="h-4 w-4" /></button>
+        <button className={iconBtn} onClick={() => dispatch({ type: "undo" })} disabled={!canUndo} aria-label="Undo" title="Undo (Ctrl+Z)"><Undo2 className="h-4 w-4" /></button>
+        <button className={iconBtn} onClick={() => dispatch({ type: "redo" })} disabled={!canRedo} aria-label="Redo" title="Redo (Ctrl+Shift+Z)"><Redo2 className="h-4 w-4" /></button>
         <span className="ml-1 hidden text-xs sm:inline">{status}</span>
         <div className="mx-auto hidden items-center rounded-full bg-[#F3F1EC] p-1 lg:flex">
-          {([["mobile", Smartphone], ["tablet", Tablet], ["desktop", Monitor]] as const).map(([d, I]) => (
-            <button key={d} onClick={() => setDevice(d)} aria-pressed={device === d} className={cn("rounded-full p-1.5", device === d ? "bg-white shadow-sm" : "text-muted")} aria-label={d}><I className="h-4 w-4" /></button>
-          ))}
+          <Tooltip.Provider>
+            {([
+              ["mobile", Smartphone, L("មើលលើទូរសព្ទ", "Mobile preview")],
+              ["tablet", Tablet, L("មើលលើថេប្លេត", "Tablet preview")],
+              ["desktop", Monitor, L("មើលលើកុំព្យូទ័រ", "Desktop preview")],
+            ] as const).map(([d, I, label]) => (
+              <Tooltip.Root key={d}>
+                <Tooltip.Trigger type="button" onClick={() => setDevice(d)} aria-pressed={device === d} aria-label={label}
+                  className={cn("rounded-full p-1.5", device === d ? "bg-white shadow-sm" : "text-muted")}><I className="h-4 w-4" /></Tooltip.Trigger>
+                <Tooltip.Portal>
+                  <Tooltip.Positioner side="bottom" sideOffset={7} className="z-[60]">
+                    <Tooltip.Popup className="rounded-md bg-ink px-2 py-1 text-xs text-white">{label}</Tooltip.Popup>
+                  </Tooltip.Positioner>
+                </Tooltip.Portal>
+              </Tooltip.Root>
+            ))}
+          </Tooltip.Provider>
         </div>
         <div className="ml-auto flex items-center gap-1.5">
           <button onClick={() => setPreviewLocale(previewLocale === "km" ? "en" : "km")} className="h-9 rounded-full border border-line-2 px-3 text-xs font-medium">{previewLocale === "km" ? "ខ្មែរ" : "EN"}</button>
           <Link href={`/preview/${props.eventId}`} target="_blank" className="hidden h-9 items-center gap-1.5 rounded-full border border-line-2 px-3 text-sm sm:inline-flex" onClick={() => persist(doc, tplSlug)}><Eye className="h-4 w-4" />{L("មើល", "Preview")}</Link>
-          {props.canPublish ? <PublishButton eventId={props.eventId} locale={props.locale} size="sm" label={props.published ? L("ធ្វើបច្ចុប្បន្នភាព", "Update") : L("ផ្សព្វផ្សាយ", "Publish")} /> : null}
+          {props.canPublish ? <PublishButton eventId={props.eventId} locale={props.locale} size="sm"
+            onPublished={() => void queryClient.invalidateQueries({ queryKey: versionsKey })}
+            label={props.published ? L("ធ្វើបច្ចុប្បន្នភាព", "Update") : L("ផ្សព្វផ្សាយ", "Publish")} /> : null}
         </div>
       </header>
 

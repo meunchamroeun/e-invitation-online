@@ -2,6 +2,8 @@
 
 A Khmer-first SaaS for building cinematic digital invitations (ធៀប), sending every guest a private link, collecting RSVPs and running the event day: seating, QR check-in, gifts and budget.
 
+See the [UI framework guide](UI-FRAMEWORK.md) for Radix UI, shadcn/ui, Tailwind, and the shared Theab components.
+
 ## Quick start (local)
 
 Requirements: **Node 20+** (22 recommended). No database server needed — local dev uses an embedded PostgreSQL (PGlite) stored in `./.data/`.
@@ -14,6 +16,8 @@ npm run dev            # http://localhost:3000
 ```
 
 Then register, open **បង្កើតកម្មវិធីថ្មី / New event**, and choose an event type. Browse and preview the matching invitation designs directly in the form. Add an invitation message, agenda, or link cover if needed, then create the event and edit it in the builder. After publishing, add guests and open a copied guest link in a private window to check the invitation.
+
+Open **គំរូធៀប / Invitation design** in an event dashboard to preview the draft, change its design, or download its design settings as JSON. A changed design takes effect on guest links at the next publish.
 
 > PGlite allows one process at a time. Stop `npm run dev` before running `npm run db:migrate` / `db:seed`.
 

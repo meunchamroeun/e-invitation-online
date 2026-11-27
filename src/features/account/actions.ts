@@ -41,12 +41,63 @@ export async function telegramLinkCodeAction(): Promise<{ code: string; bot: str
   return { code, bot: process.env.TELEGRAM_BOT_USERNAME || null };
 }
 
-export async function updateNotificationPrefsAction(p: { onRsvp: boolean; onDecline: boolean; onWish: boolean; disconnect?: boolean }): Promise<ActionResult> {
+export async function updateNotificationPrefsAction(p: {
+  onRsvp: boolean;
+  onDecline: boolean;
+  onWish: boolean;
+  telegramChatId?: string;
+  telegramBotToken?: string;
+  disconnect?: boolean;
+}): Promise<ActionResult> {
   const u = await requireUser();
-  await db.insert(schema.notificationPrefs).values({ userId: u.id, onRsvp: p.onRsvp, onDecline: p.onDecline, onWish: p.onWish })
-    .onConflictDoUpdate({ target: schema.notificationPrefs.userId, set: { onRsvp: p.onRsvp, onDecline: p.onDecline, onWish: p.onWish, ...(p.disconnect ? { telegramChatId: null } : {}), updatedAt: new Date() } });
+  const chatId = p.disconnect ? null : p.telegramChatId !== undefined ? (p.telegramChatId.trim().slice(0, 64) || null) : undefined;
+  const botToken = p.disconnect ? null : p.telegramBotToken !== undefined ? (p.telegramBotToken.trim().slice(0, 160) || null) : undefined;
+  await db.insert(schema.notificationPrefs).values({
+    userId: u.id,
+    onRsvp: p.onRsvp,
+    onDecline: p.onDecline,
+    onWish: p.onWish,
+    ...(chatId !== undefined ? { telegramChatId: chatId } : {}),
+    ...(botToken !== undefined ? { telegramBotToken: botToken } : {}),
+  })
+    .onConflictDoUpdate({
+      target: schema.notificationPrefs.userId,
+      set: {
+        onRsvp: p.onRsvp,
+        onDecline: p.onDecline,
+        onWish: p.onWish,
+        ...(chatId !== undefined ? { telegramChatId: chatId } : {}),
+        ...(botToken !== undefined ? { telegramBotToken: botToken } : {}),
+        updatedAt: new Date(),
+      },
+    });
   revalidatePath("/dashboard/profile");
+  revalidatePath("/dashboard/events", "layout");
   return { ok: true };
+}
+
+export async function testNotificationAction(eventId?: string): Promise<{ ok: boolean; telegram: "sent" | "skipped" | "failed"; error?: string }> {
+  const u = await requireUser();
+  const [prefs] = await db.select().from(schema.notificationPrefs).where(eq(schema.notificationPrefs.userId, u.id));
+  await db.insert(schema.notificationJobs).values({
+    userId: u.id,
+    eventId: eventId ?? null,
+    channel: "inapp",
+    kind: "wish_pending",
+    idempotencyKey: `test:${u.id}:${Date.now()}`,
+    payload: { guest: u.name, title: "Test Notification", message: "សាកល្បងការជូនដំណឹង / Test notification" },
+    status: "sent",
+  });
+  revalidatePath("/dashboard", "layout");
+  if (!prefs?.telegramChatId) return { ok: true, telegram: "skipped", error: "No Telegram Chat ID" };
+  const { sendTelegram } = await import("@/lib/telegram/client");
+  const r = await sendTelegram(
+    prefs.telegramChatId,
+    `🔔 <b>Test Notification</b>\nការជូនដំណឹង Telegram ដំណើរការធម្មតា ✓`,
+    prefs.telegramBotToken,
+  );
+  if (r.ok) return { ok: true, telegram: "sent" };
+  return { ok: true, telegram: "skipped" in r && r.skipped ? "skipped" : "failed", error: r.error };
 }
 
 export async function markNotificationsReadAction(): Promise<ActionResult> {

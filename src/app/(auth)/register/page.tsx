@@ -7,12 +7,21 @@ export const metadata = { title: "Register" };
 
 export default async function RegisterPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   if (await getCurrentUser()) redirect("/dashboard");
-  const { t } = await getI18n();
+  const { t, locale } = await getI18n();
   const { next } = await searchParams;
   return (
     <>
-      <h1 className="mb-8 text-[1.75rem] font-semibold">{t.auth.registerTitle}</h1>
-      <AuthForm mode="register" t={t.auth} next={next} />
+      <div className="mb-6 text-center">
+        <h1 className="text-xl font-semibold tracking-tight text-ink sm:text-2xl">{t.auth.registerTitle}</h1>
+      </div>
+      <AuthForm
+        mode="register"
+        t={t.auth}
+        locale={locale}
+        next={next}
+        googleEnabled={!!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)}
+        telegramBot={process.env.TELEGRAM_BOT_USERNAME || null}
+      />
     </>
   );
 }

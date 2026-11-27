@@ -355,24 +355,18 @@ export function SectionEditor({ s, c, update }: { s: Section; c: EditorCtx; upda
       );
     }
     case "video": {
-      const parseYt = (v: string) => {
-        const m = v.trim().match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([A-Za-z0-9_-]{11})/) ?? v.trim().match(/^([A-Za-z0-9_-]{11})$/);
-        return m ? m[1] : "";
-      };
       return (
         <Group title={title}>
           <LInput k={`${k}.heading`} label={T(c, "ចំណងជើង", "Heading")} value={s.data.heading} onChange={(v) => set({ heading: v }, "heading")} />
-          <MediaPicker c={c} purpose="video" label={T(c, "ផ្ទុកវីដេអូ (MP4 / MOV / WebM)", "Upload video (MP4 / MOV / WebM)")} value={s.data.src} onChange={(v) => set({ src: v }, "src")}
+          <MediaPicker c={c} purpose="video" label={T(c, "ផ្ទុកវីដេអូ (MP4 / MOV / WebM)", "Upload video (MP4 / MOV / WebM)")} value={s.data.src} onChange={(v) => set({ src: v, autoPlay: true }, "src")}
             hint={T(c, "ណែនាំ៖ MP4 (H.264) ដើម្បីលេងបានលើ iPhone និង Android។", "Tip: MP4 (H.264) plays on both iPhone and Android.")} />
           <MediaPicker c={c} label={T(c, "រូបគម្រប (Poster)", "Poster image")} value={s.data.poster} onChange={(v) => set({ poster: v }, "poster")} />
-          <label className="block">
-            <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{T(c, "ឬ តំណ YouTube", "Or a YouTube link")}</span>
-            <Input defaultValue={s.data.youtube ? `https://youtu.be/${s.data.youtube}` : ""} placeholder="https://youtu.be/…" className="h-10 text-sm"
-              onBlur={(ev) => set({ youtube: parseYt(ev.target.value) }, "youtube")} />
-            {s.data.youtube ? <span className="mt-1 block text-[11px] text-success">✓ YouTube: {s.data.youtube}</span> : null}
-          </label>
           <LInput k={`${k}.caption`} label={T(c, "ចំណងជើងរង", "Caption")} value={s.data.caption} onChange={(v) => set({ caption: v }, "caption")} />
-          <p className="text-[11px] leading-5 text-muted">{T(c, "វីដេអូដែលផ្ទុកឡើងមានអាទិភាពជាង YouTube។ YouTube ផ្ទុកតែពេលភ្ញៀវចុចលេងប៉ុណ្ណោះ។", "An uploaded video takes priority over YouTube. YouTube loads only when the guest taps play.")}</p>
+          <label className="flex items-center justify-between gap-3 rounded-xl border border-line px-3 py-2.5 text-sm">
+            <span>{T(c, "លេងដោយស្វ័យប្រវត្តិ (Autoplay)", "Autoplay (muted loop)")}</span>
+            <input type="checkbox" checked={s.data.autoPlay ?? true} onChange={(e) => set({ autoPlay: e.target.checked }, "autoPlay")} className="h-4 w-4 accent-[#B68A45]" />
+          </label>
+          <p className="text-[11px] leading-5 text-muted">{T(c, "វីដេអូលេងស្វ័យប្រវត្តិត្រូវបិទសំឡេងជាមុនសិន (ភ្ញៀវអាចបើកសំឡេងបាន)។", "Autoplay starts muted so mobile browsers allow it (guests can unmute).")}</p>
         </Group>
       );
     }

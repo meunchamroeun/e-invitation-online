@@ -132,6 +132,7 @@ export const events = pgTable(
     draft: jsonb("draft").notNull(), // InvitationDoc being edited
     revision: integer("revision").notNull().default(1), // optimistic concurrency for autosave
     published: jsonb("published"), // snapshot guests see
+    publishedTemplateSlug: text("published_template_slug"),
     publishedAt: ts("published_at"),
     publicSlug: text("public_slug"), // optional public (non-personal) link
     isPublic: boolean("is_public").notNull().default(false),
@@ -273,7 +274,8 @@ export const guestWishes = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     eventId: uuid("event_id").notNull().references(() => events.id, { onDelete: "cascade" }),
-    guestId: uuid("guest_id").notNull().references(() => guests.id, { onDelete: "cascade" }),
+    guestId: uuid("guest_id").references(() => guests.id, { onDelete: "cascade" }),
+    guestName: text("guest_name"),
     message: text("message").notNull(),
     status: text("status").notNull().default("pending"), // pending | approved | hidden
     createdAt: createdAt(),
@@ -335,6 +337,7 @@ export const expenses = pgTable(
 export const notificationPrefs = pgTable("notification_prefs", {
   userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
   telegramChatId: text("telegram_chat_id"),
+  telegramBotToken: text("telegram_bot_token"),
   telegramLinkCode: text("telegram_link_code"),
   onRsvp: boolean("on_rsvp").notNull().default(true),
   onDecline: boolean("on_decline").notNull().default(true),

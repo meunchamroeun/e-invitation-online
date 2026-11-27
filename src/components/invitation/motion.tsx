@@ -29,8 +29,11 @@ export const MOTION_CSS = `
 @keyframes inv-spin { to { transform: rotate(360deg); } }
 @keyframes inv-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 @keyframes inv-glow { 0%,100% { text-shadow: 0 0 0 transparent; } 50% { text-shadow: 0 0 18px color-mix(in oklab, var(--inv-accent) 45%, transparent); } }
+@keyframes inv-lightbox-in { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: scale(1); } }
+@keyframes inv-photo-fade { from { opacity: 0.35; transform: scale(1.03); } to { opacity: 1; transform: scale(1); } }
+@keyframes inv-rule-grow { from { transform: scaleX(0); opacity: 0; } to { transform: scaleX(1); opacity: 1; } }
 
-.inv-root .inv-reveal { opacity: 0; transition: opacity var(--rv-d,1s) cubic-bezier(.2,.7,.2,1), transform var(--rv-d,1s) cubic-bezier(.2,.7,.2,1), filter var(--rv-d,1s) ease; transform: translateY(var(--rv-y,18px)); }
+.inv-root .inv-reveal { opacity: 0; transition: opacity var(--rv-d,0.65s) cubic-bezier(.2,.7,.2,1), transform var(--rv-d,0.65s) cubic-bezier(.2,.7,.2,1), filter var(--rv-d,0.65s) ease; transform: translateY(var(--rv-y,18px)); }
 .inv-root[data-reveal="zoom"] .inv-reveal { transform: scale(.93); }
 .inv-root[data-reveal="blur"] .inv-reveal { transform: translateY(10px); filter: blur(8px); }
 .inv-root[data-reveal="fade"] .inv-reveal { transform: none; }
@@ -44,6 +47,8 @@ export const MOTION_CSS = `
 .inv-root:not([data-motion="off"]) .inv-spin { animation: inv-spin 60s linear infinite; }
 .inv-root:not([data-motion="off"]) .inv-float { animation: inv-float 6s ease-in-out infinite; }
 .inv-root[data-motion="full"] .inv-glow { animation: inv-glow 4.5s ease-in-out infinite; }
+.inv-root .inv-lightbox-in { animation: inv-lightbox-in 0.32s cubic-bezier(.2,.8,.2,1) forwards; }
+.inv-root .inv-photo-fade { animation: inv-photo-fade 0.4s cubic-bezier(.2,.8,.2,1) forwards; }
 .inv-root[data-motion="off"] .inv-reveal { opacity: 1 !important; transform: none !important; filter: none !important; transition: none !important; }
 
 @media (prefers-reduced-motion: reduce) {

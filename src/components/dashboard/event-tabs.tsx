@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 export function EventTabs({ id, labels, allowed }: { id: string; labels: Record<string, string>; allowed: string[] }) {
   const path = usePathname();
   const base = `/dashboard/events/${id}`;
-  const tabs = ["overview", "builder", "guests", "rsvp", "seating", "checkin", "gifts", "budget", "analytics", "settings"].filter((k) => allowed.includes(k));
+  const tabs = ["overview", "builder", "templates", "guests", "rsvp", "seating", "checkin", "gifts", "budget", "analytics", "settings"].filter((k) => allowed.includes(k));
   return (
     <nav className="-mx-4 mb-6 overflow-x-auto border-b border-line px-4 [scrollbar-width:none] sm:mx-0 sm:px-0" aria-label="Event">
       <ul className="flex gap-1">

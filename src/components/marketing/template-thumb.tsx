@@ -13,7 +13,9 @@ export function TemplateThumb({ slug, locale = "km", width = 240, className, sec
   const doc = useMemo(() => sampleDoc(t), [t]);
   const tx = useTx(locale);
   const ev = useMemo(() => ({ ...sampleEvent(t), rsvpDeadline: null, publicUrl: null }), [t]);
-  const ctx: Ctx = { t, fam: FAMILIES[t.family], locale, d: dictionaries[locale].invite, event: ev, guest: null, mode: "preview", khNum: true, tx, slots: {} };
+  const ctx: Ctx = { t, fam: FAMILIES[t.family], locale, d: dictionaries[locale].invite,
+    event: ev.previewVenueName ? { ...ev, venueName: tx(ev.previewVenueName) || ev.venueName } : ev,
+    guest: null, mode: "preview", khNum: true, tx, slots: {} };
   const s = doc.sections.find((x) => x.type === section)!;
   const scale = width / 390;
   return (

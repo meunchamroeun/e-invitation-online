@@ -36,7 +36,10 @@ export function renderMessage(kind: string, p: Record<string, unknown>): string 
     case "rsvp_declined": return `❌ <b>${g}</b> មិនអាចចូលរួមបាន\n${t}`;
     case "rsvp_maybe": return `🤔 <b>${g}</b> មិនទាន់ប្រាកដ\n${t}`;
     case "rsvp_updated": return `✏️ <b>${g}</b> បានកែការឆ្លើយតប\n${t}`;
-    case "wish_pending": return `💌 ពាក្យជូនពរថ្មីពី <b>${g}</b> កំពុងរង់ចាំការអនុម័ត\n${t}`;
+    case "wish_pending": {
+      const m = p.message ? `\n“${escapeHtml(String(p.message))}”` : "";
+      return `💌 ពាក្យជូនពរថ្មីពី <b>${g}</b>${m}\n${t}`;
+    }
     case "giftqr_changed": return `⚠️ QR ចំណងដៃត្រូវបានកែប្រែ — សូមពិនិត្យ\n${t}`;
     default: return t;
   }
@@ -44,12 +47,12 @@ export function renderMessage(kind: string, p: Record<string, unknown>): string 
 
 export async function processTelegramQueue(limit = 20) {
   const jobs = await db
-    .select({ job: schema.notificationJobs, chatId: schema.notificationPrefs.telegramChatId })
+    .select({ job: schema.notificationJobs, chatId: schema.notificationPrefs.telegramChatId, botToken: schema.notificationPrefs.telegramBotToken })
     .from(schema.notificationJobs)
     .leftJoin(schema.notificationPrefs, eq(schema.notificationPrefs.userId, schema.notificationJobs.userId))
     .where(and(eq(schema.notificationJobs.channel, "telegram"), inArray(schema.notificationJobs.status, ["queued", "failed"]), lt(schema.notificationJobs.attempts, 5)))
     .limit(limit);
-  for (const { job, chatId } of jobs) {
+  for (const { job, chatId, botToken } of jobs) {
     // Claim the job (prevents double-send if two workers run concurrently).
     const claimed = await db.update(schema.notificationJobs).set({ status: "sending", attempts: job.attempts + 1 })
       .where(and(eq(schema.notificationJobs.id, job.id), eq(schema.notificationJobs.attempts, job.attempts))).returning({ id: schema.notificationJobs.id });
@@ -58,7 +61,7 @@ export async function processTelegramQueue(limit = 20) {
       await db.update(schema.notificationJobs).set({ status: "skipped", lastError: "no chat linked" }).where(eq(schema.notificationJobs.id, job.id));
       continue;
     }
-    const r = await sendTelegram(chatId, renderMessage(job.kind, job.payload as Record<string, unknown>));
+    const r = await sendTelegram(chatId, renderMessage(job.kind, job.payload as Record<string, unknown>), botToken);
     await db.update(schema.notificationJobs)
       .set(r.ok ? { status: "sent", lastError: null } : { status: "skipped" in r && r.skipped ? "skipped" : "failed", lastError: r.error })
       .where(eq(schema.notificationJobs.id, job.id));

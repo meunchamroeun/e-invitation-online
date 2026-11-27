@@ -25,13 +25,13 @@ export function eventInfo(e: typeof schema.events.$inferSelect): EventInfo {
 
 export async function approvedWishes(eventId: string) {
   const rows = await db
-    .select({ id: schema.guestWishes.id, message: schema.guestWishes.message, name: schema.guests.fullName })
+    .select({ id: schema.guestWishes.id, message: schema.guestWishes.message, guestName: schema.guestWishes.guestName, fullName: schema.guests.fullName })
     .from(schema.guestWishes)
-    .innerJoin(schema.guests, eq(schema.guests.id, schema.guestWishes.guestId))
+    .leftJoin(schema.guests, eq(schema.guests.id, schema.guestWishes.guestId))
     .where(and(eq(schema.guestWishes.eventId, eventId), eq(schema.guestWishes.status, "approved")))
     .orderBy(desc(schema.guestWishes.createdAt))
     .limit(60);
-  return rows;
+  return rows.map((r) => ({ id: r.id, message: r.message, name: r.fullName ?? r.guestName ?? "Guest" }));
 }
 
 /** Loads everything a guest link needs. Returns null for unknown/revoked tokens or unpublished events. */
@@ -47,7 +47,7 @@ export async function loadGuestInvitation(token: string) {
   const r = rows[0];
   if (!r || r.event.status !== "published" || !r.event.published) return null;
   const doc = InvitationDocSchema.safeParse(r.event.published);
-  const template = getTemplate(r.event.templateSlug);
+  const template = getTemplate(r.event.publishedTemplateSlug ?? r.event.templateSlug);
   if (!doc.success || !template) return null;
   const [last] = await db.select({ createdAt: schema.rsvpResponses.createdAt, dietary: schema.rsvpResponses.dietary, message: schema.rsvpResponses.message })
     .from(schema.rsvpResponses).where(eq(schema.rsvpResponses.guestId, r.guest.id)).orderBy(desc(schema.rsvpResponses.createdAt)).limit(1);

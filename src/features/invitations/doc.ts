@@ -28,6 +28,7 @@ export const SectionSchema = z.discriminatedUnion("type", [
       poster: MediaRef.default(""),
       /** YouTube video id (11 chars) — embedded via youtube-nocookie.com */
       youtube: z.string().regex(/^([A-Za-z0-9_-]{11})?$/).default(""),
+      autoPlay: z.boolean().default(true),
     }),
   }),
   z.object({
@@ -151,7 +152,7 @@ export function blankSection(type: SectionType, id: string): Section {
   switch (type) {
     case "cover": return { id, type, hidden: false, data: { kicker: e, title: e, names: e, photo: "", button: l("បើកធៀប", "Open invitation") } };
     case "hero": return { id, type, hidden: false, data: { kicker: e, names: e, tagline: e, photo: "", video: "" } };
-    case "video": return { id, type, hidden: false, data: { heading: l("វីដេអូរបស់យើង", "Our film"), caption: e, src: "", poster: "", youtube: "" } };
+    case "video": return { id, type, hidden: false, data: { heading: l("វីដេអូរបស់យើង", "Our film"), caption: e, src: "", poster: "", youtube: "", autoPlay: true } };
     case "invitation": return { id, type, hidden: false, data: { heading: e, leftFamily: { father: e, mother: e }, rightFamily: { father: e, mother: e }, body: e, showParents: true } };
     case "couple": return { id, type, hidden: false, data: { left: { role: e, name: e, photo: "", bio: e }, right: { role: e, name: e, photo: "", bio: e } } };
     case "countdown": return { id, type, hidden: false, data: { heading: l("រាប់ថយក្រោយដល់ថ្ងៃមង្គល", "Counting down") } };

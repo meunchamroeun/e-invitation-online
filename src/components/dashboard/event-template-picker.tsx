@@ -1,9 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import { ArrowUpRight, Check, Eye, LayoutGrid, X } from "lucide-react";
 import { TemplateThumb } from "@/components/marketing/template-thumb";
-import { Badge, Button, Field, Select, buttonClass } from "@/components/ui";
+import { Badge, Button, Field, Select } from "@/components/ui";
 import type { MarketTemplate } from "@/features/templates/queries";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +39,7 @@ export function EventTemplatePicker({ category, locale, templates, value, onChan
   const dialog = useRef<HTMLDialogElement>(null);
   const browse = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
+  const reduceMotion = useReducedMotion();
   const selected = templates.find((template) => template.slug === value);
 
   if (templates.length === 0) return <p className="text-sm text-ink-2">{L(COPY.empty)}</p>;
@@ -51,7 +53,9 @@ export function EventTemplatePicker({ category, locale, templates, value, onChan
         </Select>
       </Field>
       {selected ? (
-        <div className="mt-4 flex items-start gap-3 rounded-xl border border-line bg-paper p-3">
+        <motion.div key={selected.slug} initial={reduceMotion ? false : { opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}
+          className="mt-4 flex items-start gap-3 rounded-xl border border-line bg-paper p-3">
           <div className="shrink-0 overflow-hidden rounded-lg border border-line">
             <TemplateThumb slug={selected.slug} locale={locale} width={62} />
           </div>
@@ -59,7 +63,7 @@ export function EventTemplatePicker({ category, locale, templates, value, onChan
             <Badge tone={selected.tier === "premium" ? "gold" : "neutral"}>{L(COPY[selected.tier])}</Badge>
             <p className="mt-2 text-sm leading-6 text-ink-2">{L(selected.description)}</p>
           </div>
-        </div>
+        </motion.div>
       ) : null}
       {selected?.tier === "premium" ? <p className="mt-3 text-xs text-ink-2">{L(COPY.premiumNote)}</p> : null}
       <Button ref={browse} type="button" variant="outline" className="mt-4 w-full" aria-haspopup="dialog"
@@ -111,12 +115,13 @@ export function EventTemplatePicker({ category, locale, templates, value, onChan
                   <div className="flex flex-1 flex-col gap-3 p-2.5 sm:p-3">
                     <h4 className="flex-1 break-words text-sm font-semibold leading-6">{name}</h4>
                     <div className="grid gap-2">
-                      <a href={`/t/${template.slug}?lang=${locale}`} target="_blank" rel="noopener"
-                        aria-label={`${L(COPY.preview)}: ${name}`} className={buttonClass("outline", "md", "w-full gap-1.5 px-2")}>
-                        <Eye aria-hidden className="size-4 shrink-0" />
-                        {L(COPY.preview)}
-                        <ArrowUpRight aria-hidden className="size-3 shrink-0" />
-                      </a>
+                      <Button asChild variant="outline" className="w-full gap-1.5 px-2">
+                        <a href={`/t/${template.slug}?lang=${locale}`} target="_blank" rel="noopener" aria-label={`${L(COPY.preview)}: ${name}`}>
+                          <Eye aria-hidden className="size-4 shrink-0" />
+                          {L(COPY.preview)}
+                          <ArrowUpRight aria-hidden className="size-3 shrink-0" />
+                        </a>
+                      </Button>
                       <Button type="button" variant={active ? "soft" : "primary"} className="px-2"
                         aria-label={`${L(COPY.use)}: ${name}`} aria-pressed={active}
                         onClick={() => { onChange(template.slug); dialog.current?.close(); }}>

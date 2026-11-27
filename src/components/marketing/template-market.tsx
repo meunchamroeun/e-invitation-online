@@ -14,7 +14,7 @@ const STYLES: Record<string, { km: string; en: string }> = {
   traditional: { km: "ប្រពៃណី", en: "Traditional" }, luxury: { km: "ប្រណិត", en: "Luxury" }, modern: { km: "ទំនើប", en: "Modern" },
   minimal: { km: "សាមញ្ញ", en: "Minimal" }, floral: { km: "ផ្កា", en: "Floral" }, festive: { km: "សប្បាយ", en: "Festive" }, solemn: { km: "ស្ងប់ស្ងាត់", en: "Solemn" },
 };
-const COLORS: Record<string, string> = { red: "#8E1B1B", gold: "#B68A45", ivory: "#EFE4D0", navy: "#16213F", pink: "#E7B9B5", green: "#1F5A45", black: "#111", brown: "#7B4A1E", white: "#fff", saffron: "#D98B1E" };
+const COLORS: Record<string, string> = { red: "#8E1B1B", gold: "#B68A45", ivory: "#EFE4D0", navy: "#16213F", pink: "#E7B9B5", green: "#1F5A45", black: "#111", brown: "#7B4A1E", white: "#fff", saffron: "#D98B1E", purple: "#6F427F" };
 
 export function TemplateMarket({ items, locale, t, initialType }: { items: MarketTemplate[]; locale: "km" | "en"; t: Dictionary["templates"]; initialType: string }) {
   const [q, setQ] = useState("");

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Languages, Music2, Pause } from "lucide-react";
 import type { InvitationDoc } from "@/features/invitations/doc";
-import type { TemplateDef } from "@/features/templates/registry";
+import { CLASSIC_SAMPLE_AUDIO, CURTAINS_SAMPLE_AUDIO, type TemplateDef } from "@/features/templates/registry";
 import { dictionaries } from "@/i18n/dictionaries";
 import { FAMILIES, particleColors, resolvePalette, themeStyle } from "./theme";
 import { Ambient, MOTION_CSS, useParallax, type ParticleKind } from "./motion";
@@ -37,11 +37,35 @@ export function InvitationRenderer(props: RendererProps) {
   const fam = FAMILIES[template.family];
   const root = useRef<HTMLDivElement>(null);
   const motionLevel = doc.theme.motion?.level ?? "full";
-  const particleKind = ((doc.theme.motion?.particles ?? "auto") === "auto" ? fam.particles : doc.theme.motion!.particles) as ParticleKind;
+  const defaultParticles = template.slug === "ivory-scratch-lite" ? "gold" : fam.particles;
+  const particleKind = ((doc.theme.motion?.particles ?? "auto") === "auto" ? defaultParticles : doc.theme.motion!.particles) as ParticleKind;
   useParallax(root, mode !== "editor" && motionLevel === "full");
 
+  useEffect(() => {
+    if (mode === "editor" || props.contained) return;
+    const prev = window.history.scrollRestoration;
+    if ("scrollRestoration" in window.history) window.history.scrollRestoration = "manual";
+    window.scrollTo(0, 0);
+    return () => {
+      if ("scrollRestoration" in window.history) window.history.scrollRestoration = prev;
+    };
+  }, [mode, props.contained]);
+
+  useEffect(() => {
+    if (!opened || mode === "editor" || props.contained) return;
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    const id = requestAnimationFrame(() => {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+    });
+    return () => cancelAnimationFrame(id);
+  }, [opened, mode, props.contained]);
+
   const ctx: Ctx = {
-    t: template, fam, locale, d: dictionaries[locale].invite, event, guest, mode,
+    t: template, fam, locale, d: dictionaries[locale].invite,
+    event: event.previewVenueName ? { ...event, venueName: tx(event.previewVenueName) || event.venueName } : event,
+    guest, mode,
     khNum: doc.theme.khmerNumerals, tx, slots: props.slots ?? {},
   };
 
@@ -74,6 +98,26 @@ export function InvitationRenderer(props: RendererProps) {
       <style>{MOTION_CSS + `.inv-root h1,.inv-root h2{text-wrap:balance}.inv-root :lang(km),.inv-root[lang=km]{letter-spacing:0}`}</style>
       {mode !== "editor" || props.contained ? <Ambient kind={particleKind} level={motionLevel} colors={particleColors(particleKind, resolvePalette(template, doc))} contained={props.contained} /> : null}
       {fam.bg === "marble" ? <MarbleBg fixed /> : null}
+      {template.slug === "classic-floral" ? (
+        <div aria-hidden className={`pointer-events-none inset-0 z-0 overflow-hidden ${props.contained ? "absolute" : "fixed"}`}>
+          <video className="h-full w-full object-cover opacity-55" src="/templates/planessential/classic-bg.mp4" autoPlay muted loop playsInline preload="auto" />
+          <div className="absolute inset-0 bg-[#FAF5EE]/35" />
+        </div>
+      ) : null}
+      {(template.slug === "navy-scratch" || template.slug === "crimson-lovestory" || template.slug === "ivory-scratch-lite") ? (
+        <div
+          aria-hidden
+          className={`pointer-events-none inset-0 z-0 opacity-[0.09] ${props.contained ? "absolute" : "fixed"}`}
+          style={{ backgroundImage: "url(/templates/planessential/kbach-pattern.png)", backgroundSize: "320px auto", backgroundRepeat: "repeat" }}
+        />
+      ) : null}
+      {fam.bg === "curtains" ? (
+        <div aria-hidden className={`pointer-events-none inset-0 z-0 overflow-hidden ${props.contained ? "absolute" : "fixed"}`}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/templates/champagne-curtains/bg.jpg" alt="" className="h-full w-full object-cover" />
+          <div className="absolute inset-0 bg-[#FAF6F0]/25" />
+        </div>
+      ) : null}
       {fam.bg === "chan" ? <div className="pointer-events-none absolute inset-0" style={{ color: "var(--inv-primary)" }}><ChanPatternBg opacity={0.035} /></div> : null}
 
       {cover && cover.type === "cover" && !opened && mode !== "editor" ? (
@@ -86,7 +130,11 @@ export function InvitationRenderer(props: RendererProps) {
           guestLine={guestLine}
           skipLabel={ctx.d.skip}
           initials={initials}
-          onOpened={() => setOpened(true)}
+          motionOff={motionLevel === "off"}
+          onOpened={() => {
+            setOpened(true);
+            requestAnimationFrame(() => window.scrollTo(0, 0));
+          }}
         />
       ) : null}
 
@@ -138,7 +186,12 @@ function FloatingControls({ locale, onLocale, music, musicLabel, langLabel, cont
   const [playing, setPlaying] = useState(false);
   useEffect(() => {
     if (!music) return;
-    const a = new Audio(music);
+    const resolved = music === CURTAINS_SAMPLE_AUDIO
+      ? "/templates/champagne-curtains/audio.mp3"
+      : music === CLASSIC_SAMPLE_AUDIO
+        ? "/templates/planessential/audio-7.mp3"
+        : music;
+    const a = new Audio(resolved);
     a.loop = true;
     a.preload = "none";
     audio.current = a;
