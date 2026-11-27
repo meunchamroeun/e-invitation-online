@@ -7,6 +7,7 @@ import { Button } from "@/components/ui";
 
 const ERR: Record<string, { km: string; en: string }> = {
   plan_premium_template: { km: "គំរូនេះជាគំរូពិសេស — សូមដំឡើងកញ្ចប់ ដើម្បីផ្សព្វផ្សាយ", en: "This is a premium design — upgrade your plan to publish" },
+  event_archived: { km: "អ្នកគ្រប់គ្រងបានទុកព្រឹត្តិការណ៍នេះក្នុងបណ្ណសារ។", en: "An administrator has archived this event." },
 };
 
 export function PublishButton({ eventId, label, locale, size = "md", onPublished }: { eventId: string; label: string; locale: "km" | "en"; size?: "sm" | "md"; onPublished?: () => void }) {

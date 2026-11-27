@@ -4,18 +4,18 @@ import { getI18n } from "@/i18n/server";
 import { buttonClass } from "@/components/ui";
 import { FluidThumb, TemplateThumb } from "@/components/marketing/template-thumb";
 import { StaticDevice } from "@/components/ui/device-frame";
-import { getTemplate } from "@/features/templates/registry";
+import { EVENT_TYPES, getTemplate } from "@/features/templates/registry";
+import { listMarketTemplates } from "@/features/templates/queries";
 import { PersonalDemo } from "@/components/marketing/personal-demo";
 import { ChanFlower, KbachCorner, KbachDivider, Lotus, PrasatSilhouette, WeaveBand } from "@/components/invitation/ornaments";
-import { EVENT_TYPES, TEMPLATES } from "@/features/templates/registry";
 import { toKhmerDigits } from "@/i18n/format";
 import { FaqList } from "@/components/marketing/faq";
 import { PricingCards } from "@/components/marketing/pricing-cards";
 
 export default async function HomePage() {
-  const { t, locale } = await getI18n();
+  const [{ t, locale }, templates] = await Promise.all([getI18n(), listMarketTemplates()]);
   const h = t.home;
-  const featured = ["royal-khmer", "slek-rith", "angkor-twilight", "ivory-champagne", "sampot-silk", "lotus-blush"];
+  const featured = [...templates].sort((a, b) => Number(b.featured) - Number(a.featured) || b.popularity - a.popularity).slice(0, 6);
   const n = (x: number) => (locale === "km" ? toKhmerDigits(x) : String(x));
 
   return (
@@ -88,15 +88,15 @@ export default async function HomePage() {
       <section className="container-x py-20 sm:py-28">
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div className="max-w-2xl">
-            <p className="eyebrow">{t.nav.templates} · {n(TEMPLATES.length)}</p>
+            <p className="eyebrow">{t.nav.templates} · {n(templates.length)}</p>
             <h2 className="mt-3 text-3xl font-bold leading-[1.5] sm:text-4xl">{h.showcaseTitle}</h2>
             <p className="mt-3 text-ink-2">{h.showcaseBody}</p>
           </div>
           <Link href="/templates" className={buttonClass("outline", "md")}>{h.viewAll}<ArrowRight className="h-4 w-4" /></Link>
         </div>
         <div className="mt-10 grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-6">
-          {featured.map((slug, i) => {
-            const tpl = TEMPLATES.find((x) => x.slug === slug)!;
+          {featured.map((tpl, i) => {
+            const { slug } = tpl;
             return (
               <Link key={slug} href={`/templates/${slug}`} className={`group ${i % 2 ? "lg:translate-y-10" : ""}`}>
                 <div className="overflow-hidden rounded-[1.4rem] border border-line bg-white p-1.5 shadow-soft transition-transform duration-500 group-hover:-translate-y-1 group-hover:shadow-lift">

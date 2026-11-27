@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
   const email = profile.email.trim().toLowerCase();
   const [existing] = await db.select().from(schema.users).where(eq(schema.users.email, email)).limit(1);
   let userId = existing?.id;
-  if (existing?.deletedAt) return NextResponse.redirect(new URL("/login?error=oauth_failed", req.url));
+  if (existing?.deletedAt || existing?.suspendedAt) return NextResponse.redirect(new URL("/login?error=oauth_failed", req.url));
   if (!userId) {
     const [created] = await db
       .insert(schema.users)
@@ -74,12 +74,10 @@ export async function GET(req: NextRequest) {
       })
       .returning({ id: schema.users.id });
     userId = created.id;
-    await audit("user.register.google", { actorId: userId });
-  } else {
-    await audit("user.login.google", { actorId: userId });
   }
 
-  await createSession(userId);
+  if (!(await createSession(userId))) return NextResponse.redirect(new URL("/login?error=oauth_failed", req.url));
+  await audit(existing ? "user.login.google" : "user.register.google", { actorId: userId });
   const next = saved.next?.startsWith("/") && !saved.next.startsWith("//") ? saved.next : "/dashboard";
   return NextResponse.redirect(new URL(next, req.url));
 }

@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { createHash, randomUUID } from "node:crypto";
-import { and, count, eq, isNull, desc } from "drizzle-orm";
+import { and, count, eq, isNull, desc, ne } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db, schema } from "@/lib/db";
@@ -190,18 +190,23 @@ export async function changeEventTemplateAction(eventId: string, revision: numbe
 
 export async function publishAction(eventId: string): Promise<ActionResult> {
   const { user, event } = await assertEvent(eventId, "event.publish");
+  if (event.status === "archived") return { ok: false, error: "event_archived" };
   const tpl = getTemplate(event.templateSlug);
   const tier = tpl ? (await getTemplatePolicy(tpl)).tier : undefined;
   const [owner] = await db.select({ planCode: schema.users.planCode, role: schema.users.role }).from(schema.users).where(eq(schema.users.id, event.ownerId));
   const plan = await getPlan(owner.planCode);
   if (tier === "premium" && !plan.limits.premiumTemplates && owner.role !== "super_admin") return { ok: false, error: "plan_premium_template" };
   const doc = InvitationDocSchema.parse(event.draft);
-  await db.transaction(async (tx) => {
-    await tx.update(schema.events).set({
+  const updated = await db.transaction(async (tx) => {
+    const [row] = await tx.update(schema.events).set({
       published: doc, publishedTemplateSlug: event.templateSlug, publishedAt: new Date(), status: "published", updatedAt: new Date(),
-    }).where(eq(schema.events.id, eventId));
+    }).where(and(eq(schema.events.id, eventId), isNull(schema.events.deletedAt), ne(schema.events.status, "archived")))
+      .returning({ id: schema.events.id });
+    if (!row) return false;
     await tx.insert(schema.invitationVersions).values({ eventId, kind: "publish", doc, createdBy: user.id });
+    return true;
   });
+  if (!updated) return { ok: false, error: "event_archived" };
   await audit("event.publish", { actorId: user.id, eventId });
   revalidatePath(`/dashboard/events/${eventId}`);
   return { ok: true };
@@ -209,7 +214,10 @@ export async function publishAction(eventId: string): Promise<ActionResult> {
 
 export async function unpublishAction(eventId: string): Promise<ActionResult> {
   const { user } = await assertEvent(eventId, "event.publish");
-  await db.update(schema.events).set({ status: "draft", updatedAt: new Date() }).where(eq(schema.events.id, eventId));
+  const [updated] = await db.update(schema.events).set({ status: "draft", updatedAt: new Date() })
+    .where(and(eq(schema.events.id, eventId), isNull(schema.events.deletedAt), ne(schema.events.status, "archived")))
+    .returning({ id: schema.events.id });
+  if (!updated) return { ok: false, error: "event_archived" };
   await audit("event.unpublish", { actorId: user.id, eventId });
   revalidatePath(`/dashboard/events/${eventId}`);
   return { ok: true };

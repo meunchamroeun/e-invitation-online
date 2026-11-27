@@ -1,20 +1,53 @@
-import { desc } from "drizzle-orm";
+import { and, count, desc, eq, ilike, isNotNull, isNull, or } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
-import { PageHeader } from "@/components/ui";
+import { requireAdmin } from "@/lib/auth/session";
+import { shortDate } from "@/i18n/format";
+import { accountIdPattern } from "@/components/admin/admin-audit";
 import { AdminUserRow } from "@/components/admin/admin-controls";
+import {
+  ADMIN_PAGE_SIZE, AdminFilters, AdminHeading, AdminTable, adminPage, containsAdminQuery, readAdminQuery, type AdminQuery,
+} from "@/components/admin/admin-table";
 
-export default async function AdminUsers() {
-  const users = await db.select().from(schema.users).orderBy(desc(schema.users.createdAt)).limit(500);
-  const plans = await db.select({ code: schema.plans.code }).from(schema.plans);
+const path = "/admin/users";
+const statuses = [["", "All statuses"], ["active", "Active"], ["suspended", "Suspended"], ["deleted", "Deleted"]] as const;
+
+export default async function AdminUsers({ searchParams }: { searchParams: Promise<AdminQuery> }) {
+  const admin = await requireAdmin();
+  const params = await searchParams;
+  const q = readAdminQuery(params, "q");
+  const requestedStatus = readAdminQuery(params, "status");
+  const status = statuses.find(([value]) => value === requestedStatus)?.[0] ?? "";
+  const requestedPlan = readAdminQuery(params, "plan");
+  const users = schema.users;
+  const plans = await db.select({ code: schema.plans.code, name: schema.plans.nameEn, active: schema.plans.isActive }).from(schema.plans).orderBy(schema.plans.sort);
+  const plan = plans.some(({ code }) => code === requestedPlan) ? requestedPlan : "";
+  const match = containsAdminQuery(q);
+  const where = and(
+    q ? or(ilike(users.name, match), ilike(users.email, match), accountIdPattern.test(q) ? eq(users.id, q) : undefined) : undefined,
+    plan ? eq(users.planCode, plan) : undefined,
+    status === "deleted" ? isNotNull(users.deletedAt) : undefined,
+    status === "active" ? and(isNull(users.deletedAt), isNull(users.suspendedAt)) : undefined,
+    status === "suspended" ? and(isNull(users.deletedAt), isNotNull(users.suspendedAt)) : undefined,
+  );
+  const [{ total }] = await db.select({ total: count() }).from(users).where(where);
+  const page = adminPage(params, total);
+  const rows = total ? await db.select({
+    id: users.id, name: users.name, email: users.email, createdAt: users.createdAt, role: users.role,
+    planCode: users.planCode, deleted: users.deletedAt, suspended: users.suspendedAt,
+  }).from(users).where(where).orderBy(desc(users.createdAt), desc(users.id)).limit(ADMIN_PAGE_SIZE).offset(page.offset) : [];
+
   return (
     <>
-      <PageHeader title="Users" description={`${users.length} accounts`} />
-      <div className="overflow-x-auto rounded-2xl border border-line bg-white">
-        <table className="w-full min-w-[720px] text-sm">
-          <thead className="border-b border-line text-left text-xs text-muted"><tr><th className="p-3">User</th><th className="p-3">Joined</th><th className="p-3">Plan</th><th className="p-3">Role</th></tr></thead>
-          <tbody>{users.map((u) => <AdminUserRow key={u.id} user={{ id: u.id, name: u.name, email: u.email, createdAt: u.createdAt.toISOString().slice(0, 10), planCode: u.planCode, role: u.role, deleted: !!u.deletedAt }} plans={plans.map((p) => p.code)} />)}</tbody>
-        </table>
-      </div>
+      <AdminHeading title="Users" description="Find accounts, change their plans and roles, and manage sign-in access." />
+      <AdminTable label="User accounts" path={path} params={{ q, status, plan }} page={page} empty="No matching accounts" className="min-w-[41rem]"
+        columns={["Account", "Joined", "Plan", "Role", "Status", "Actions"]}
+        toolbar={<AdminFilters path={path} q={q} placeholder="Search name or email" filters={[
+          { name: "status", label: "Account status", value: status, options: statuses },
+          { name: "plan", label: "Plan filter", value: plan, options: [["", "All plans"], ...plans.map((option) => [option.code, option.name] as const)] },
+        ]} />}
+      >
+        {rows.map((u) => <AdminUserRow key={u.id} user={{ ...u, createdAt: shortDate(u.createdAt, "en"), deleted: !!u.deleted, suspended: !!u.suspended }} plans={plans} isSelf={u.id === admin.id} />)}
+      </AdminTable>
     </>
   );
 }

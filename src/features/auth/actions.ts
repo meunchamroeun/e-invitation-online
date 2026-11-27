@@ -40,7 +40,7 @@ export async function registerAction(_: AuthState, form: FormData): Promise<Auth
     .values({ email: parsed.data.email, name: parsed.data.name, passwordHash: await hashPassword(parsed.data.password), locale })
     .returning({ id: schema.users.id });
   await audit("user.register", { actorId: user.id });
-  await createSession(user.id);
+  if (!(await createSession(user.id))) return { error: t.auth.invalid, fields };
   redirect(safeNext(form.get("next")));
 }
 
@@ -56,8 +56,7 @@ export async function loginAction(_: AuthState, form: FormData): Promise<AuthSta
   const user = rows[0];
   // Always run a hash comparison to keep timing similar for unknown emails.
   const ok = user && !user.deletedAt ? await verifyPassword(password, user.passwordHash) : (await verifyPassword(password, "scrypt$16384$AAAAAAAAAAAAAAAAAAAAAA==$AAAA"), false);
-  if (!ok || !user) return { error: t.auth.invalid, fields };
-  await createSession(user.id);
+  if (!ok || !user || !(await createSession(user.id))) return { error: t.auth.invalid, fields };
   await audit("user.login", { actorId: user.id });
   redirect(safeNext(form.get("next")));
 }

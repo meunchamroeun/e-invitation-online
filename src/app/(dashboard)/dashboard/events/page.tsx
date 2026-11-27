@@ -8,6 +8,7 @@ import { FluidThumb } from "@/components/marketing/template-thumb";
 import { num, shortDate } from "@/i18n/format";
 import { EVENT_TYPES } from "@/features/templates/registry";
 import { ChanFlower } from "@/components/invitation/ornaments";
+import { EventStatus } from "@/components/dashboard/event-status";
 
 export default async function EventsPage() {
   const user = await requireUser();
@@ -28,7 +29,7 @@ export default async function EventsPage() {
                 <div className="relative h-44 overflow-hidden border-b border-line"><div className="absolute inset-x-0 top-0"><FluidThumb slug={event.templateSlug} locale={locale} /></div></div>
                 <div className="p-5">
                   <div className="flex items-center gap-2">
-                    <Badge tone={event.status === "published" ? "success" : "neutral"}>{event.status === "published" ? d.live : d.draft}</Badge>
+                    <EventStatus status={event.status} labels={d} />
                     <span className="text-xs text-muted">{type ? (locale === "km" ? type.label.km : type.label.en) : event.type}</span>
                     {role !== "owner" ? <Badge tone="gold">{role}</Badge> : null}
                   </div>

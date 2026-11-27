@@ -29,6 +29,20 @@
       "when": 1795743269422,
       "tag": "0003_published_template",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795774812621,
+      "tag": "0004_wishes_and_telegram_settings",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795774834680,
+      "tag": "0005_admin_moderation",
+      "breakpoints": true
     }
   ]
 }

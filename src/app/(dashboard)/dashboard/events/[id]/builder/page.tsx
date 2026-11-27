@@ -32,7 +32,7 @@ export default async function BuilderPage({ params }: { params: Promise<{ id: st
       locale={locale}
       giftLocked={event.giftQrLocked}
       canEditGift={can(role, "giftqr.edit")}
-      canPublish={can(role, "event.publish")}
+      canPublish={event.status !== "archived" && can(role, "event.publish")}
       published={event.status === "published"}
     />
   );

@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { EventStatus } from "@/components/dashboard/event-status";
 import { ArrowRight, CalendarHeart, Plus } from "lucide-react";
 import { requireUser } from "@/lib/auth/session";
 import { getI18n } from "@/i18n/server";
 import { listUserEvents, recentActivity, rsvpTrend } from "@/features/events/queries";
-import { Badge, EmptyState, PageHeader, Stat, buttonClass } from "@/components/ui";
+import { EmptyState, PageHeader, Stat, buttonClass } from "@/components/ui";
 import { num, shortDate } from "@/i18n/format";
 import { TemplateThumb } from "@/components/marketing/template-thumb";
 import { BarTrend } from "@/components/dashboard/charts";
@@ -88,7 +89,7 @@ export default async function DashboardHome() {
                   <p className="text-xs text-muted">{shortDate(event.startsAt, locale, event.timezone)}</p>
                 </div>
                 <div className="hidden text-right text-xs text-muted sm:block"><span className="num font-semibold text-ink">{n(stats.attending)}</span>/{n(stats.invited)}</div>
-                <Badge tone={event.status === "published" ? "success" : "neutral"}>{event.status === "published" ? d.live : d.draft}</Badge>
+                <EventStatus status={event.status} labels={d} />
               </Link>
             ))}
           </div>

@@ -21,7 +21,15 @@ export type SessionUser = {
 export async function createSession(userId: string) {
   const token = generateToken(32);
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 86400_000);
-  await db.insert(schema.sessions).values({ id: sha256(token), userId, expiresAt });
+  const created = await db.transaction(async (tx) => {
+    const [user] = await tx.select({ id: schema.users.id }).from(schema.users)
+      .where(and(eq(schema.users.id, userId), isNull(schema.users.deletedAt), isNull(schema.users.suspendedAt)))
+      .for("update");
+    if (!user) return false;
+    await tx.insert(schema.sessions).values({ id: sha256(token), userId, expiresAt });
+    return true;
+  });
+  if (!created) return false;
   const jar = await cookies();
   jar.set(SESSION_COOKIE, token, {
     httpOnly: true,
@@ -30,6 +38,7 @@ export async function createSession(userId: string) {
     path: "/",
     expires: expiresAt,
   });
+  return true;
 }
 
 export async function destroySession() {
@@ -55,7 +64,7 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
     .from(schema.sessions)
     .innerJoin(schema.users, eq(schema.users.id, schema.sessions.userId))
     .where(
-      and(eq(schema.sessions.id, sha256(token)), gt(schema.sessions.expiresAt, new Date()), isNull(schema.users.deletedAt)),
+      and(eq(schema.sessions.id, sha256(token)), gt(schema.sessions.expiresAt, new Date()), isNull(schema.users.deletedAt), isNull(schema.users.suspendedAt)),
     )
     .limit(1);
   return rows[0] ?? null;

@@ -30,6 +30,7 @@ export const users = pgTable(
     planCode: text("plan_code").notNull().default("free"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
+    suspendedAt: ts("suspended_at"),
     deletedAt: ts("deleted_at"),
   },
   (t) => [uniqueIndex("users_email_uq").on(t.email)],
@@ -119,6 +120,7 @@ export const events = pgTable(
     title: text("title").notNull(),
     organizerNotes: text("organizer_notes"),
     status: text("status").notNull().default("draft"), // draft | published | archived
+    archivedFrom: text("archived_from").$type<"draft" | "published">(),
     timezone: text("timezone").notNull().default("Asia/Phnom_Penh"),
     startsAt: ts("starts_at"),
     endsAt: ts("ends_at"),

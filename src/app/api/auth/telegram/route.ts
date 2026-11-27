@@ -40,7 +40,7 @@ async function handleTelegramUser(data: Record<string, string>) {
   const email = `tg_${tg.id}@telegram.local`;
   const displayName = [tg.first_name, tg.last_name].filter(Boolean).join(" ").trim() || tg.username || `Telegram ${tg.id}`;
   const [existing] = await db.select().from(schema.users).where(eq(schema.users.email, email)).limit(1);
-  if (existing?.deletedAt) return null;
+  if (existing?.deletedAt || existing?.suspendedAt) return null;
 
   let userId = existing?.id;
   if (!userId) {
@@ -49,10 +49,9 @@ async function handleTelegramUser(data: Record<string, string>) {
       .values({ email, name: displayName.slice(0, 80), passwordHash: "oauth:telegram", locale: "km" })
       .returning({ id: schema.users.id });
     userId = created.id;
-    await audit("user.register.telegram", { actorId: userId });
-  } else {
-    await audit("user.login.telegram", { actorId: userId });
   }
+  if (!(await createSession(userId))) return null;
+  await audit(existing ? "user.login.telegram" : "user.register.telegram", { actorId: userId });
 
   // Link Telegram chat ID automatically for notifications
   await db
@@ -63,7 +62,6 @@ async function handleTelegramUser(data: Record<string, string>) {
       set: { telegramChatId: String(tg.id), updatedAt: new Date() },
     });
 
-  await createSession(userId);
   return userId;
 }
 
