@@ -67,6 +67,32 @@ function TextIn({ label, value, onChange, placeholder, max = 120 }: { label: str
   );
 }
 
+async function prepareImageForUpload(f: File, purpose: string): Promise<File> {
+  if ((purpose !== "image" && purpose !== "qr") || f.type === "image/gif" || f.size <= 3.5 * 1024 * 1024) {
+    return f;
+  }
+  try {
+    const bmp = await createImageBitmap(f);
+    const maxDim = purpose === "qr" ? 1200 : 2000;
+    const scale = Math.min(1, maxDim / Math.max(bmp.width, bmp.height));
+    const w = Math.max(1, Math.round(bmp.width * scale));
+    const h = Math.max(1, Math.round(bmp.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) { bmp.close(); return f; }
+    ctx.drawImage(bmp, 0, 0, w, h);
+    bmp.close();
+    const mime = purpose === "qr" ? "image/png" : "image/webp";
+    const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, mime, 0.85));
+    if (!blob || blob.size >= f.size) return f;
+    return new File([blob], f.name.replace(/\.[^.]+$/, "") + (purpose === "qr" ? ".png" : ".webp"), { type: mime });
+  } catch {
+    return f;
+  }
+}
+
 export function MediaPicker({ c, value, onChange, purpose = "image", label, hint }: { c: EditorCtx; value: string; onChange: (v: string) => void; purpose?: "image" | "qr" | "audio" | "video"; label: string; hint?: string }) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -74,8 +100,9 @@ export function MediaPicker({ c, value, onChange, purpose = "image", label, hint
   const [lib, setLib] = useState(false);
   async function upload(f: File) {
     setBusy(true); setErr("");
+    const prepared = await prepareImageForUpload(f, purpose);
     const fd = new FormData();
-    fd.set("file", f); fd.set("eventId", c.eventId); fd.set("purpose", purpose);
+    fd.set("file", prepared); fd.set("eventId", c.eventId); fd.set("purpose", purpose);
     const res = await fetch("/api/media", { method: "POST", body: fd });
     const j = await res.json().catch(() => ({}));
     setBusy(false);
