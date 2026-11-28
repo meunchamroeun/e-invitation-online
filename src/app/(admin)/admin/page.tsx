@@ -13,14 +13,14 @@ const num = (value: number) => value.toLocaleString("en-US");
 
 function Metric({ href, icon: Icon, value, title, detail }: { href: string; icon: LucideIcon; value: number; title: string; detail: string }) {
   return (
-    <Link href={href} className="group relative min-w-0 px-3.5 py-4 transition-colors hover:bg-[#faf7ee] focus-visible:outline-offset-[-3px] sm:px-5 sm:py-5">
+    <Link href={href} className="group relative min-w-0 px-3.5 py-4 transition-all duration-300 hover:bg-[#faf7ee] focus-visible:outline-offset-[-3px] sm:px-5 sm:py-5">
       <div className="flex items-center gap-2.5">
-        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-[#f2ecdf] text-[#79572f]"><Icon size={16} aria-hidden="true" /></span>
+        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-[#f2ecdf] text-[#79572f] transition-transform duration-300 group-hover:scale-110"><Icon size={16} aria-hidden="true" /></span>
         <p className="text-xs font-semibold text-ink-2 sm:text-sm">{title}</p>
       </div>
       <p className="num mt-4 text-3xl leading-none font-semibold tracking-tight text-[#241c19] sm:text-[2.15rem]">{num(value)}</p>
       <p className="mt-2 text-xs leading-5 text-muted">{detail}</p>
-      <ArrowUpRight size={15} aria-hidden="true" className="absolute right-3.5 bottom-4 hidden text-[#86622f] sm:block" />
+      <ArrowUpRight size={15} aria-hidden="true" className="absolute right-3.5 bottom-4 hidden text-[#86622f] transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 sm:block" />
     </Link>
   );
 }
@@ -60,7 +60,7 @@ export default async function AdminHome() {
   return (
     <>
       <AdminHeading title="Platform overview" description="Monitor invitation activity, account access, and payment reviews." />
-      <section aria-label="Platform totals" className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-[#e7e1d5] bg-[#e7e1d5] [&>a]:bg-white xl:grid-cols-4">
+      <section aria-label="Platform totals" className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-[#e7e1d5] bg-[#e7e1d5] shadow-sm [&>a]:bg-white xl:grid-cols-4">
         <Metric href="/admin/users?status=active" icon={UsersRound} value={active} title="Active accounts" detail="Users who can sign in" />
         <Metric href="/admin/events" icon={CalendarDays} value={totalEvents} title="Events" detail={`${num(guestCount)} guest records`} />
         <Metric href="/admin/events?status=published" icon={RadioTower} value={published} title="Published invitations" detail="Available to guests" />

@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "motion/react";
 import { ArrowUpRight, CalendarDays, CreditCard, History, LayoutGrid, Layers3, PanelTop, ShieldCheck, UsersRound } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
 import { cn } from "@/lib/utils";
@@ -36,21 +37,29 @@ export function AdminShell({ name, email, children }: { name: string; email: str
           </Link>
         </div>
         <nav aria-label="Admin navigation" className="flex gap-1 overflow-x-auto px-3 pb-3 sm:px-5 lg:mt-4 lg:flex-col lg:overflow-visible lg:px-3.5">
-          {navigation.map(({ href, label, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              aria-current={selected.href === href ? "page" : undefined}
-              className={cn(
-                "flex min-h-10 shrink-0 items-center gap-2 rounded-lg px-3 text-[13px] font-medium transition-colors lg:gap-3",
-                selected.href === href
-                  ? "bg-[#ead7b6] text-[#321e14]"
-                  : "text-[#e2d6c9] hover:bg-white/10 hover:text-white",
-              )}
-            >
-              <Icon size={16} aria-hidden="true" />{label}
-            </Link>
-          ))}
+          {navigation.map(({ href, label, icon: Icon }) => {
+            const active = selected.href === href;
+            return (
+              <Link
+                key={href}
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "relative z-10 flex min-h-10 shrink-0 items-center gap-2 rounded-xl px-3 text-[13px] font-medium transition-colors lg:gap-3",
+                  active ? "text-[#321e14]" : "text-[#e2d6c9] hover:bg-white/10 hover:text-white",
+                )}
+              >
+                {active ? (
+                  <motion.span
+                    layoutId="admin-nav-pill"
+                    transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                    className="absolute inset-0 -z-10 rounded-xl bg-[#ead7b6] shadow-sm"
+                  />
+                ) : null}
+                <Icon size={16} aria-hidden="true" />{label}
+              </Link>
+            );
+          })}
         </nav>
         <div className="mt-auto hidden p-3.5 lg:block">
           <Link href="/dashboard" className="flex min-h-11 items-center justify-between gap-2 rounded-lg border border-white/15 px-3 text-sm text-[#e2d6c9] transition-colors hover:bg-white/10 hover:text-white">
@@ -59,8 +68,8 @@ export function AdminShell({ name, email, children }: { name: string; email: str
         </div>
       </aside>
       <div className="min-w-0">
-        <header className="border-b border-[#e7e1d5] bg-[#fffdf8]">
-          <div className="mx-auto flex min-h-14 max-w-[1440px] items-center justify-between gap-3 px-4 sm:px-7 lg:min-h-16 lg:px-9">
+        <header className="sticky top-0 z-20 border-b border-[#e7e1d5] bg-[#fffdf8]/90 backdrop-blur-md">
+          <div className="mx-auto flex min-h-14 max-w-[1600px] items-center justify-between gap-3 px-4 sm:px-7 lg:min-h-16 lg:px-9">
             <div className="flex items-center gap-2 text-[13px]">
               <ShieldCheck aria-hidden="true" size={17} className="shrink-0 text-[#86622f]" />
               <span className="font-semibold text-ink">Administration</span>
@@ -76,8 +85,15 @@ export function AdminShell({ name, email, children }: { name: string; email: str
             </div>
           </div>
         </header>
-        <main id="admin-main" className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-7 sm:py-8 lg:px-9 lg:py-9">
-          {children}
+        <main id="admin-main" className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-7 sm:py-8 lg:px-9 lg:py-9">
+          <motion.div
+            key={pathname}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          >
+            {children}
+          </motion.div>
         </main>
       </div>
     </div>
