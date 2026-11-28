@@ -8,6 +8,7 @@ import { shortDate } from "@/i18n/format";
 import { TEMPLATES } from "@/features/templates/registry";
 import { auditActionLabel } from "@/components/admin/admin-audit";
 import { AdminHeading } from "@/components/admin/admin-table";
+import { AdminKpiStrip } from "@/components/admin/admin-ui";
 
 const num = (value: number) => value.toLocaleString("en-US");
 
@@ -60,12 +61,14 @@ export default async function AdminHome() {
   return (
     <>
       <AdminHeading title="Platform overview" description="Monitor invitation activity, account access, and payment reviews." />
-      <section aria-label="Platform totals" className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-[#e7e1d5] bg-[#e7e1d5] shadow-sm [&>a]:bg-white xl:grid-cols-4">
-        <Metric href="/admin/users?status=active" icon={UsersRound} value={active} title="Active accounts" detail="Users who can sign in" />
-        <Metric href="/admin/events" icon={CalendarDays} value={totalEvents} title="Events" detail={`${num(guestCount)} guest records`} />
-        <Metric href="/admin/events?status=published" icon={RadioTower} value={published} title="Published invitations" detail="Available to guests" />
-        <Metric href="/admin/billing?status=pending" icon={CreditCard} value={pending} title="Pending payments" detail={pending ? "Ready for review" : "No requests to review"} />
-      </section>
+      <AdminKpiStrip
+        items={[
+          { label: "Active accounts", value: active, tone: "success", hint: "Users who can sign in", href: "/admin/users?status=active" },
+          { label: "Events", value: totalEvents, tone: "neutral", hint: `${num(guestCount)} guest records`, href: "/admin/events" },
+          { label: "Published invitations", value: published, tone: "gold", hint: "Available to guests", href: "/admin/events?status=published" },
+          { label: "Pending payments", value: pending, tone: pending ? "warning" : "neutral", hint: pending ? "Ready for review" : "No requests to review", href: "/admin/billing?status=pending" },
+        ]}
+      />
 
       <div className="mt-5 grid items-start gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
         <section className="overflow-hidden rounded-xl border border-[#e7e1d5] bg-white">

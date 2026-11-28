@@ -4,12 +4,13 @@ import { requireAdmin } from "@/lib/auth/session";
 import { shortDate } from "@/i18n/format";
 import { accountIdPattern } from "@/components/admin/admin-audit";
 import { AdminUserRow } from "@/components/admin/admin-controls";
+import { AdminFilterToolbar, AdminKpiStrip } from "@/components/admin/admin-ui";
 import {
-  ADMIN_PAGE_SIZE, AdminFilters, AdminHeading, AdminTable, adminPage, containsAdminQuery, readAdminQuery, type AdminQuery,
+  ADMIN_PAGE_SIZE, AdminHeading, AdminTable, adminPage, containsAdminQuery, readAdminQuery, type AdminQuery,
 } from "@/components/admin/admin-table";
 
 const path = "/admin/users";
-const statuses = [["", "All statuses"], ["active", "Active"], ["suspended", "Suspended"], ["deleted", "Deleted"]] as const;
+const statuses = [["", "All"], ["active", "Active"], ["suspended", "Suspended"], ["deleted", "Deleted"]] as const;
 
 export default async function AdminUsers({ searchParams }: { searchParams: Promise<AdminQuery> }) {
   const admin = await requireAdmin();
@@ -29,7 +30,16 @@ export default async function AdminUsers({ searchParams }: { searchParams: Promi
     status === "active" ? and(isNull(users.deletedAt), isNull(users.suspendedAt)) : undefined,
     status === "suspended" ? and(isNull(users.deletedAt), isNotNull(users.suspendedAt)) : undefined,
   );
-  const [{ total }] = await db.select({ total: count() }).from(users).where(where);
+
+  const scalar = async (query: Promise<{ n: number }[]>) => (await query)[0]?.n ?? 0;
+  const [totalAll, totalActive, totalSuspended, totalAdmins, [{ total }]] = await Promise.all([
+    scalar(db.select({ n: count() }).from(users).where(isNull(users.deletedAt))),
+    scalar(db.select({ n: count() }).from(users).where(and(isNull(users.deletedAt), isNull(users.suspendedAt)))),
+    scalar(db.select({ n: count() }).from(users).where(and(isNull(users.deletedAt), isNotNull(users.suspendedAt)))),
+    scalar(db.select({ n: count() }).from(users).where(and(isNull(users.deletedAt), eq(users.role, "super_admin")))),
+    db.select({ total: count() }).from(users).where(where),
+  ]);
+
   const page = adminPage(params, total);
   const rows = total ? await db.select({
     id: users.id, name: users.name, email: users.email, createdAt: users.createdAt, role: users.role,
@@ -39,12 +49,28 @@ export default async function AdminUsers({ searchParams }: { searchParams: Promi
   return (
     <>
       <AdminHeading title="Users" description="Find accounts, change their plans and roles, and manage sign-in access." />
+      <AdminKpiStrip
+        items={[
+          { label: "Total Accounts", value: totalAll, hint: "Non-deleted users", href: path },
+          { label: "Active", value: totalActive, tone: "success", hint: "Can sign in", href: `${path}?status=active` },
+          { label: "Suspended", value: totalSuspended, tone: totalSuspended ? "warning" : "neutral", hint: "Sign-in blocked", href: `${path}?status=suspended` },
+          { label: "Super Admins", value: totalAdmins, tone: "gold", hint: "Full admin access" },
+        ]}
+      />
       <AdminTable label="User accounts" path={path} params={{ q, status, plan }} page={page} empty="No matching accounts" className="min-w-[41rem]"
         columns={["Account", "Joined", "Plan", "Role", "Status", "Actions"]}
-        toolbar={<AdminFilters path={path} q={q} placeholder="Search name or email" filters={[
-          { name: "status", label: "Account status", value: status, options: statuses },
-          { name: "plan", label: "Plan filter", value: plan, options: [["", "All plans"], ...plans.map((option) => [option.code, option.name] as const)] },
-        ]} />}
+        toolbar={
+          <AdminFilterToolbar
+            path={path}
+            q={q}
+            placeholder="Search name, email, or user ID"
+            params={{ q, status, plan }}
+            segmented={{ name: "status", label: "Account status", value: status, options: statuses }}
+            dropdowns={[
+              { name: "plan", label: "All plans", value: plan, options: [["", "All plans"], ...plans.map((option) => [option.code, option.name] as const)] },
+            ]}
+          />
+        }
       >
         {rows.map((u) => <AdminUserRow key={u.id} user={{ ...u, createdAt: shortDate(u.createdAt, "en"), deleted: !!u.deleted, suspended: !!u.suspended }} plans={plans} isSelf={u.id === admin.id} />)}
       </AdminTable>

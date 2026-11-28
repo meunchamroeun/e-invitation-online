@@ -17,6 +17,7 @@ import { Badge, Button, Field, Input, Select, Textarea } from "@/components/ui";
 import { Dialog, DialogClose } from "@/components/ui/dialog";
 import { formatMoney } from "@/lib/money";
 import { adminCell, adminRow } from "./admin-table";
+import { AdminRowQuickMenu, AdminSwitchOption } from "./admin-ui";
 
 const failureMessages: Record<string, string> = {
   already_reviewed: "This payment was already reviewed.",
@@ -162,11 +163,21 @@ export function AdminUserRow({ user, plans, isSelf }: { user: User; plans: PlanO
         <Badge tone={user.deleted ? "danger" : user.suspended ? "warning" : "success"}>{user.deleted ? "Deleted" : user.suspended ? "Suspended" : "Active"}</Badge>
       </td>
       <td className={`${adminCell} text-right`}>
-        {user.deleted ? <span className="text-xs whitespace-nowrap text-muted">Read only</span> : (
-          <Dialog title={`Manage ${user.name}`} description={user.email} trigger={<Button type="button" variant="outline" size="sm" className="rounded-lg" aria-label={`Manage ${user.email}`}><PencilLine size={14} aria-hidden="true" /> Manage</Button>}>
-            <UserSettings user={user} plans={plans} isSelf={isSelf} />
-          </Dialog>
-        )}
+        <div className="flex items-center justify-end gap-1.5">
+          {user.deleted ? <span className="text-xs whitespace-nowrap text-muted">Read only</span> : (
+            <Dialog title={`Manage ${user.name}`} description={user.email} trigger={<Button type="button" variant="outline" size="sm" className="rounded-lg" aria-label={`Manage ${user.email}`}><PencilLine size={14} aria-hidden="true" /> Manage</Button>}>
+              <UserSettings user={user} plans={plans} isSelf={isSelf} />
+            </Dialog>
+          )}
+          <AdminRowQuickMenu
+            label={`More actions for ${user.email}`}
+            items={[
+              { kind: "link", label: "View user events", href: `/admin/events?q=${encodeURIComponent(user.email)}` },
+              { kind: "copy", label: "Copy email", value: user.email },
+              { kind: "copy", label: "Copy user ID", value: user.id },
+            ]}
+          />
+        </div>
       </td>
     </tr>
   );
@@ -327,14 +338,14 @@ export function AdminPlanForm({ plan }: { plan: PlanForm }) {
             </Field>
           ))}
         </div>
-        <fieldset className="border-t border-line pt-2">
+        <fieldset className="border-t border-line pt-3">
           <legend className="pr-2 text-sm font-semibold">Features</legend>
-          <div className="grid grid-cols-2 gap-x-3">
-            {planFeatures.map(([key, label]) => <CheckOption key={key} name={key} label={label} defaultChecked={plan[key]} disabled={pending} />)}
+          <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {planFeatures.map(([key, label]) => <AdminSwitchOption key={key} name={key} label={label} defaultChecked={plan[key]} disabled={pending} />)}
           </div>
         </fieldset>
-        <div>
-          <CheckOption name="isActive" label="Active plan" defaultChecked={isDefaultPlan || plan.isActive} disabled={pending || isDefaultPlan} />
+        <div className="space-y-2">
+          <AdminSwitchOption name="isActive" label="Active plan" defaultChecked={isDefaultPlan || plan.isActive} disabled={pending || isDefaultPlan} />
           <p className="text-xs leading-relaxed text-muted">
             {isDefaultPlan ? "The free plan stays active because it is the default." : "Inactive plans are unavailable for assignment and purchase. Existing accounts on those plans fall back to the default plan."}
           </p>

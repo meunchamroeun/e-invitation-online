@@ -4,8 +4,9 @@ import { db, schema } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth/session";
 import { formatTime, shortDate } from "@/i18n/format";
 import { auditActionLabel, auditActionLabels, auditSummary, auditTargetAccount } from "@/components/admin/admin-audit";
+import { AdminFilterToolbar, AdminRowQuickMenu } from "@/components/admin/admin-ui";
 import {
-  ADMIN_PAGE_SIZE, AdminFilters, AdminHeading, AdminTable, adminCell, adminPage, adminRow, containsAdminQuery, readAdminQuery, type AdminQuery,
+  ADMIN_PAGE_SIZE, AdminHeading, AdminTable, adminCell, adminPage, adminRow, containsAdminQuery, readAdminQuery, type AdminQuery,
 } from "@/components/admin/admin-table";
 
 const path = "/admin/audit-logs";
@@ -37,8 +38,16 @@ export default async function AuditLogs({ searchParams }: { searchParams: Promis
     <>
       <AdminHeading title="Audit logs" description="Trace account, event, and billing changes. Times are shown in Phnom Penh time." />
       <AdminTable label="Audit activity" path={path} params={{ q, category }} page={page} empty="No matching activity" className="min-w-[41rem]"
-        columns={["Action", "Actor", "When", "Details"]}
-        toolbar={<AdminFilters path={path} q={q} placeholder="Search action or actor email" filters={[{ name: "category", label: "Activity category", value: category, options: categories }]} />}
+        columns={["Action", "Actor", "When", "Details", ""]}
+        toolbar={
+          <AdminFilterToolbar
+            path={path}
+            q={q}
+            placeholder="Search action or actor email"
+            params={{ q, category }}
+            segmented={{ name: "category", label: "Activity category", value: category, options: categories }}
+          />
+        }
       >
         {rows.map((log) => {
           const details = auditSummary(log.action, log.details);
@@ -52,6 +61,17 @@ export default async function AuditLogs({ searchParams }: { searchParams: Promis
                 {details || (log.eventId || target ? null : "—")}
                 {log.eventId ? <p className={details ? "mt-0.5 text-muted" : "text-muted"}>Event <span className="font-mono" title={log.eventId}>{log.eventId.slice(0, 8)}</span></p> : null}
                 {target ? <Link href={`/admin/users?q=${target}`} title={target} className="mt-0.5 block rounded-sm text-[#765124] hover:underline">Account <span className="font-mono">{target.slice(0, 8)}</span></Link> : null}
+              </td>
+              <td className={`${adminCell} text-right`}>
+                <AdminRowQuickMenu
+                  label={`Actions for log ${log.id}`}
+                  items={[
+                    ...(log.email ? [{ kind: "link" as const, label: "Filter by actor", href: `/admin/audit-logs?q=${encodeURIComponent(log.email)}` }] : []),
+                    ...(target ? [{ kind: "link" as const, label: "View target account", href: `/admin/users?q=${target}` }] : []),
+                    { kind: "copy", label: "Copy action key", value: log.action },
+                    { kind: "copy", label: "Copy log ID", value: log.id },
+                  ]}
+                />
               </td>
             </tr>
           );
