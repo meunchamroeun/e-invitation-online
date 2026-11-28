@@ -182,80 +182,147 @@ function BuilderEditor(props: BuilderProps) {
   );
 
   const ThemePanel = (
-    <div className="space-y-6 p-4">
-      <div>
-        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted">{L("គំរូ", "Template")}</p>
+    <div className="space-y-3.5 bg-[#F8F6F1] p-3.5">
+      <div className="rounded-2xl border border-line bg-white p-3.5 shadow-xs">
+        <div className="mb-2.5 flex items-center justify-between">
+          <p className="text-xs font-semibold text-ink">{L("គំរូធៀប", "Template")}</p>
+          <span className="text-[11px] text-muted">{L("រក្សាទុកខ្លឹមសារដដែល", "Keeps your content")}</span>
+        </div>
         <div className="grid grid-cols-3 gap-2">
           {TEMPLATES.filter((t) => props.templateSlugs.includes(t.slug) || t.slug === tplSlug).map((t) => (
-            <button key={t.slug} onClick={() => setTplSlug(t.slug)} title={t.name[props.locale]} aria-pressed={tplSlug === t.slug}
-              className={cn("overflow-hidden rounded-lg border-2 transition-all", tplSlug === t.slug ? "border-gold" : "border-transparent hover:border-line-2")}>
+            <button key={t.slug} type="button" onClick={() => setTplSlug(t.slug)} title={t.name[props.locale]} aria-pressed={tplSlug === t.slug}
+              className={cn("overflow-hidden rounded-xl border-2 transition-all", tplSlug === t.slug ? "border-gold ring-2 ring-gold/25" : "border-transparent hover:border-line-2")}>
               <TemplateThumb slug={t.slug} locale={props.locale} width={76} />
             </button>
           ))}
         </div>
-        <p className="mt-2 text-xs text-muted">{L("ខ្លឹមសាររបស់អ្នកនៅដដែល ពេលប្ដូរគំរូ", "Your content is kept when switching templates")}</p>
       </div>
-      <div>
-        <div className="mb-2 flex items-center justify-between">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">{L("ពណ៌", "Colours")}</p>
-          {Object.keys(doc.theme.palette).length ? <button className="inline-flex items-center gap-1 text-xs text-muted hover:text-ink" onClick={() => set({ ...doc, theme: { ...doc.theme, palette: {} } })}><RotateCcw className="h-3 w-3" />{L("កំណត់ឡើងវិញ", "Reset")}</button> : null}
+
+      <div className="rounded-2xl border border-line bg-white p-3.5 shadow-xs">
+        <div className="mb-2.5 flex items-center justify-between">
+          <p className="text-xs font-semibold text-ink">{L("ពណ៌រចនា", "Colour palette")}</p>
+          {Object.keys(doc.theme.palette).length ? (
+            <button type="button" className="inline-flex items-center gap-1 rounded-full bg-paper px-2.5 py-1 text-[11px] font-medium text-ink-2 hover:text-ink" onClick={() => set({ ...doc, theme: { ...doc.theme, palette: {} } })}>
+              <RotateCcw className="h-3 w-3" />{L("ដើម", "Reset")}
+            </button>
+          ) : null}
         </div>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          {[
+            { label: L("មាស", "Gold"), pal: { primary: "#B68A45", accent: "#E3B868" } },
+            { label: L("ក្រហមទុំ", "Burgundy"), pal: { primary: "#7A1F32", accent: "#B8893E" } },
+            { label: L("ខៀវចាស់", "Navy"), pal: { bg: "#0E1630", surface: "#16213F", ink: "#F2E9D8", muted: "#AFA68F", primary: "#CFA855", accent: "#F3D98B", onPrimary: "#0E1630" } },
+            { label: L("ភ្លុកដំរី", "Ivory"), pal: { bg: "#FAF5EE", surface: "#FFFFFF", ink: "#3D2B1F", muted: "#8A7355", primary: "#B4813F", accent: "#D09D5A", onPrimary: "#FFFFFF" } },
+          ].map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              onClick={() => set({ ...doc, theme: { ...doc.theme, palette: { ...doc.theme.palette, ...preset.pal } } }, "palette.preset")}
+              className="inline-flex items-center gap-1.5 rounded-full border border-line-2 bg-paper/60 px-2.5 py-1 text-[11px] font-medium text-ink-2 transition-colors hover:border-gold hover:bg-white"
+            >
+              <span className="h-2.5 w-2.5 rounded-full" style={{ background: preset.pal.primary }} />
+              {preset.label}
+            </button>
+          ))}
+        </div>
+        <div className="grid grid-cols-2 gap-1.5">
           {(Object.keys(palette) as (keyof Pal)[]).map((k) => (
-            <label key={k} className="flex items-center gap-2 rounded-xl border border-line bg-white p-1.5 pr-2 text-xs">
-              <input type="color" value={palette[k]} onChange={(e) => set({ ...doc, theme: { ...doc.theme, palette: { ...doc.theme.palette, [k]: e.target.value } } }, `palette.${k}`)} className="h-7 w-7 cursor-pointer rounded-lg border-0 bg-transparent p-0" />
-              <span className="text-ink-2">{({ bg: L("ផ្ទៃ", "Background"), surface: L("កាត", "Surface"), ink: L("អក្សរ", "Text"), muted: L("អក្សររង", "Muted"), primary: L("ចម្បង", "Primary"), accent: L("បន្ថែម", "Accent"), onPrimary: L("លើចម្បង", "On primary") } as Record<string, string>)[k]}</span>
+            <label key={k} className="flex cursor-pointer items-center gap-2 rounded-xl border border-line bg-paper/40 p-1.5 pr-2 text-xs transition-colors hover:bg-white">
+              <input type="color" value={palette[k]} onChange={(e) => set({ ...doc, theme: { ...doc.theme, palette: { ...doc.theme.palette, [k]: e.target.value } } }, `palette.${k}`)} className="h-6 w-6 shrink-0 cursor-pointer rounded-md border-0 bg-transparent p-0" />
+              <span className="truncate text-ink-2">{({ bg: L("ផ្ទៃ", "Background"), surface: L("កាត", "Surface"), ink: L("អក្សរ", "Text"), muted: L("អក្សររង", "Muted"), primary: L("ចម្បង", "Primary"), accent: L("បន្ថែម", "Accent"), onPrimary: L("លើចម្បង", "On primary") } as Record<string, string>)[k]}</span>
             </label>
           ))}
         </div>
       </div>
-      <div className="space-y-3">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">{L("ជម្រើស", "Options")}</p>
+
+      <div className="space-y-3 rounded-2xl border border-line bg-white p-3.5 shadow-xs">
+        <p className="text-xs font-semibold text-ink">{L("ជម្រើសទូទៅ", "General options")}</p>
         {([
           ["envelope", L("ចលនាបើកស្រោមសំបុត្រ", "Envelope opening animation")],
           ["khmerNumerals", L("ប្រើលេខខ្មែរ (០១២៣)", "Use Khmer numerals (០១២៣)")],
-        ] as const).map(([k, label]) => (
-          <label key={k} className="flex items-center justify-between gap-3 text-sm">
-            {label}
-            <input type="checkbox" checked={doc.theme[k]} onChange={(e) => set({ ...doc, theme: { ...doc.theme, [k]: e.target.checked } })} className="h-4 w-4 accent-[#B68A45]" />
-          </label>
-        ))}
-        <label className="flex items-center justify-between gap-3 text-sm">
-          {L("ភាសាដើមរបស់ធៀប", "Default invitation language")}
-          <select value={doc.defaultLocale} onChange={(e) => set({ ...doc, defaultLocale: e.target.value as "km" | "en" })} className="h-9 rounded-lg border border-line-2 bg-white px-2 text-sm">
-            <option value="km">ខ្មែរ</option><option value="en">English</option>
-          </select>
+        ] as const).map(([k, label]) => {
+          const on = doc.theme[k];
+          return (
+            <button
+              key={k}
+              type="button"
+              role="switch"
+              aria-checked={on}
+              onClick={() => set({ ...doc, theme: { ...doc.theme, [k]: !on } })}
+              className="flex w-full items-center justify-between gap-3 text-left text-xs font-medium text-ink-2"
+            >
+              <span>{label}</span>
+              <span className={cn("relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors", on ? "bg-gold" : "bg-black/15")}>
+                <span className={cn("inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform", on ? "translate-x-4" : "translate-x-0.5")} />
+              </span>
+            </button>
+          );
+        })}
+        <label className="flex items-center justify-between gap-3 pt-1 text-xs font-medium text-ink-2">
+          <span>{L("ភាសាដើមរបស់ធៀប", "Default language")}</span>
+          <div className="inline-flex rounded-xl bg-[#EFECE6] p-0.5">
+            {(["km", "en"] as const).map((loc) => (
+              <button
+                key={loc}
+                type="button"
+                onClick={() => set({ ...doc, defaultLocale: loc })}
+                className={cn("rounded-lg px-2.5 py-1 text-[11px] font-medium transition-all", doc.defaultLocale === loc ? "bg-white text-ink shadow-xs" : "text-muted")}
+              >
+                {loc === "km" ? "ខ្មែរ" : "EN"}
+              </button>
+            ))}
+          </div>
         </label>
       </div>
-      <div className="space-y-3">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">{L("ចលនា", "Animation")}</p>
+
+      <div className="space-y-3 rounded-2xl border border-line bg-white p-3.5 shadow-xs">
+        <p className="text-xs font-semibold text-ink">{L("ចលនា & បែបផែន", "Animation & effects")}</p>
         <div className="grid grid-cols-3 gap-1 rounded-xl bg-[#EFECE6] p-1">
           {(["full", "subtle", "off"] as const).map((lv) => (
-            <button key={lv} onClick={() => set({ ...doc, theme: { ...doc.theme, motion: { ...doc.theme.motion, level: lv } } })} aria-pressed={doc.theme.motion.level === lv}
-              className={cn("rounded-lg py-1.5 text-xs", doc.theme.motion.level === lv ? "bg-white font-medium shadow-sm" : "text-muted")}>
+            <button key={lv} type="button" onClick={() => set({ ...doc, theme: { ...doc.theme, motion: { ...doc.theme.motion, level: lv } } })} aria-pressed={doc.theme.motion.level === lv}
+              className={cn("rounded-lg py-1.5 text-xs transition-all", doc.theme.motion.level === lv ? "bg-white font-medium text-ink shadow-xs" : "text-muted")}>
               {{ full: L("ពេញ", "Full"), subtle: L("ស្រាល", "Subtle"), off: L("បិទ", "Off") }[lv]}
             </button>
           ))}
         </div>
-        <label className="flex items-center justify-between gap-3 text-sm">
-          {L("បែបផែនធ្លាក់/អណ្ដែត", "Floating effect")}
-          <select value={doc.theme.motion.particles} onChange={(e) => set({ ...doc, theme: { ...doc.theme, motion: { ...doc.theme.motion, particles: e.target.value as "auto" } } })} className="h-9 rounded-lg border border-line-2 bg-white px-2 text-sm">
-            <option value="auto">{L("តាមគំរូ", "Template default")}</option>
-            <option value="petals">{L("ផ្កាកុលាបធ្លាក់", "Rose petals")}</option>
-            <option value="lotus">{L("ផ្កាឈូក", "Lotus petals")}</option>
-            <option value="gold">{L("ធូលីមាស", "Gold dust")}</option>
-            <option value="stars">{L("ផ្កាយភ្លឺ", "Twinkling stars")}</option>
-            <option value="confetti">{L("ក្រដាសពណ៌", "Confetti")}</option>
-            <option value="leaves">{L("ស្លឹកឈើ", "Leaves")}</option>
-            <option value="none">{L("គ្មាន", "None")}</option>
-          </select>
-        </label>
-        <p className="text-[11px] leading-5 text-muted">{L("មើលចលនាពេញលេញតាមប៊ូតុង «មើល»។ ភ្ញៀវដែលបិទចលនាក្នុងទូរស័ព្ទ នឹងឃើញកំណែស្ងប់។", "See full animation via “Preview”. Guests who turned off motion on their phone get a calm version automatically.")}</p>
+        <div>
+          <p className="mb-1.5 text-[11px] font-medium text-muted">{L("បែបផែនអណ្ដែត", "Floating particles")}</p>
+          <div className="grid grid-cols-2 gap-1.5">
+            {([
+              ["auto", L("✨ តាមគំរូ", "✨ Auto")],
+              ["petals", L("🌹 ផ្កាកុលាប", "🌹 Petals")],
+              ["lotus", L("🪷 ផ្កាឈូក", "🪷 Lotus")],
+              ["gold", L("✨ ធូលីមាស", "✨ Gold dust")],
+              ["stars", L("⭐ ផ្កាយភ្លឺ", "⭐ Stars")],
+              ["confetti", L("🎊 ក្រដាសពណ៌", "🎊 Confetti")],
+              ["leaves", L("🍃 ស្លឹកឈើ", "🍃 Leaves")],
+              ["none", L("🚫 គ្មាន", "🚫 None")],
+            ] as const).map(([val, label]) => {
+              const on = doc.theme.motion.particles === val;
+              return (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => set({ ...doc, theme: { ...doc.theme, motion: { ...doc.theme.motion, particles: val } } })}
+                  className={cn(
+                    "rounded-xl border px-2.5 py-1.5 text-left text-[11px] font-medium transition-all",
+                    on ? "border-gold bg-gold-soft/45 text-ink shadow-xs" : "border-line bg-paper/40 text-ink-2 hover:bg-white",
+                  )}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
-      <MediaPicker c={ctx} label={L("រូបក្របតំណធៀប", "Link preview cover")} value={doc.shareImage ?? ""}
-        onChange={(value) => set({ ...doc, shareImage: value })} />
-      <MediaPicker c={ctx} purpose="audio" label={L("ភ្លេងផ្ទៃខាងក្រោយ (ចាប់ផ្ដើមតែពេលភ្ញៀវបើកធៀប)", "Background music (starts only when the guest opens)")} value={doc.theme.music.src}
-        onChange={(v) => set({ ...doc, theme: { ...doc.theme, music: { ...doc.theme.music, src: v } } })} />
+
+      <div className="space-y-3 rounded-2xl border border-line bg-white p-3.5 shadow-xs">
+        <MediaPicker c={ctx} label={L("រូបក្របតំណធៀប (Share Preview)", "Link preview cover")} value={doc.shareImage ?? ""}
+          onChange={(value) => set({ ...doc, shareImage: value })} />
+        <MediaPicker c={ctx} purpose="audio" label={L("ភ្លេងផ្ទៃខាងក្រោយ", "Background music")} value={doc.theme.music.src}
+          onChange={(v) => set({ ...doc, theme: { ...doc.theme, music: { ...doc.theme.music, src: v } } })} />
+      </div>
     </div>
   );
 
