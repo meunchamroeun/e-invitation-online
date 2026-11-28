@@ -54,6 +54,9 @@ export function resolvePalette(t: TemplateDef, doc: InvitationDoc): Palette {
 
 export function themeStyle(t: TemplateDef, doc: InvitationDoc): CSSProperties {
   const p = resolvePalette(t, doc);
+  const displayKey = doc.theme.fonts?.display ?? t.fonts.display;
+  const bodyKey = doc.theme.fonts?.body ?? t.fonts.body;
+  const latinKey = doc.theme.fonts?.latin ?? t.fonts.latin;
   return {
     ["--inv-bg" as string]: p.bg,
     ["--inv-surface" as string]: p.surface,
@@ -62,13 +65,13 @@ export function themeStyle(t: TemplateDef, doc: InvitationDoc): CSSProperties {
     ["--inv-primary" as string]: p.primary,
     ["--inv-accent" as string]: p.accent,
     ["--inv-on-primary" as string]: p.onPrimary,
-    ["--inv-display" as string]: KHMER_FONT[t.fonts.display],
-    ["--inv-body" as string]: KHMER_FONT[t.fonts.body],
-    ["--inv-latin" as string]: LATIN_FONT[t.fonts.latin],
-    ["--font-latin-display" as string]: LATIN_FONT[t.fonts.latin],
+    ["--inv-display" as string]: KHMER_FONT[displayKey],
+    ["--inv-body" as string]: KHMER_FONT[bodyKey],
+    ["--inv-latin" as string]: LATIN_FONT[latinKey],
+    ["--font-latin-display" as string]: LATIN_FONT[latinKey],
     background: p.bg,
     color: p.ink,
-    fontFamily: KHMER_FONT[t.fonts.body],
+    fontFamily: KHMER_FONT[bodyKey],
   };
 }
 

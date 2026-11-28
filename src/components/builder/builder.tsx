@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import type { InvitationDoc, Section, SectionType } from "@/features/invitations/doc";
 import { SECTION_LABELS, SECTION_TYPES, blankSection } from "@/features/invitations/doc";
-import { TEMPLATES, getTemplate, type Palette as Pal } from "@/features/templates/registry";
+import { TEMPLATES, getTemplate, type KhmerFont, type LatinFont, type Palette as Pal } from "@/features/templates/registry";
 import { saveDraftAction, listVersionsAction, restoreVersionAction } from "@/features/events/actions";
 import { InvitationRenderer } from "@/components/invitation/renderer";
 import type { EventInfo } from "@/components/invitation/sections";
@@ -23,7 +23,7 @@ import { FluidThumb } from "@/components/marketing/template-thumb";
 import { PublishButton } from "@/components/dashboard/publish-button";
 import { Frame } from "./frame";
 import { FitDevice, FinishPicker, type Finish } from "@/components/ui/device-frame";
-import { isDark } from "@/components/invitation/theme";
+import { isDark, KHMER_FONT, LATIN_FONT } from "@/components/invitation/theme";
 import { historyReducer, initHistory, type HistoryAction } from "./history";
 import { SectionEditor, MediaPicker, type EditorCtx, type MediaItem } from "./section-editor";
 import { cn } from "@/lib/utils";
@@ -328,6 +328,115 @@ function BuilderEditor(props: BuilderProps) {
             </label>
           ))}
         </div>
+      </div>
+
+      <div className="space-y-3 rounded-2xl border border-line bg-white p-3.5 shadow-xs">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold text-ink">{L("ពុម្ពអក្សរ (ខ្មែរ & EN)", "Fonts (Khmer & EN)")}</p>
+          {doc.theme.fonts && Object.keys(doc.theme.fonts).length ? (
+            <button type="button" className="inline-flex items-center gap-1 rounded-full bg-paper px-2.5 py-1 text-[11px] font-medium text-ink-2 hover:text-ink" onClick={() => set({ ...doc, theme: { ...doc.theme, fonts: undefined } })}>
+              <RotateCcw className="h-3 w-3" />{L("ដើម", "Reset")}
+            </button>
+          ) : null}
+        </div>
+        {(() => {
+          const khmerFonts: { id: KhmerFont; name: string }[] = [
+            { id: "moul", name: "Moul (មូល)" },
+            { id: "moulpali", name: "Moulpali (មូលប៉ាលី)" },
+            { id: "dangrek", name: "Dangrek (ដងរែក)" },
+            { id: "kantumruy", name: "Kantumruy Pro" },
+            { id: "battambang", name: "Battambang (បាត់ដំបង)" },
+            { id: "notoSerif", name: "Noto Serif Khmer" },
+          ];
+          const latinFonts: { id: LatinFont; name: string }[] = [
+            { id: "cormorant", name: "Cormorant Garamond" },
+            { id: "playfair", name: "Playfair Display" },
+            { id: "pinyon", name: "Pinyon Script" },
+            { id: "inter", name: "Inter" },
+          ];
+          const curDisplay = doc.theme.fonts?.display ?? template.fonts.display;
+          const curBody = doc.theme.fonts?.body ?? template.fonts.body;
+          const curLatin = doc.theme.fonts?.latin ?? template.fonts.latin;
+          return (
+            <div className="space-y-2.5">
+              {([
+                {
+                  label: L("ពុម្ពអក្សរខ្មែរ (ចំណងជើង)", "Khmer Heading Font"),
+                  value: curDisplay,
+                  options: khmerFonts,
+                  sample: "សិរីមង្គលអាពាហ៍ពិពាហ៍",
+                  fontMap: KHMER_FONT,
+                  onPick: (id: string) => set({ ...doc, theme: { ...doc.theme, fonts: { ...doc.theme.fonts, display: id as KhmerFont } } }, "fonts.display"),
+                },
+                {
+                  label: L("ពុម្ពអក្សរខ្មែរ (អត្ថបទ)", "Khmer Body Font"),
+                  value: curBody,
+                  options: khmerFonts,
+                  sample: "សូមគោរពអញ្ជើញភ្ញៀវកិត្តិយស",
+                  fontMap: KHMER_FONT,
+                  onPick: (id: string) => set({ ...doc, theme: { ...doc.theme, fonts: { ...doc.theme.fonts, body: id as KhmerFont } } }, "fonts.body"),
+                },
+                {
+                  label: L("ពុម្ពអក្សរអង់គ្លេស (EN)", "English Font"),
+                  value: curLatin,
+                  options: latinFonts,
+                  sample: "Together with their families",
+                  fontMap: LATIN_FONT,
+                  onPick: (id: string) => set({ ...doc, theme: { ...doc.theme, fonts: { ...doc.theme.fonts, latin: id as LatinFont } } }, "fonts.latin"),
+                },
+              ] as const).map((field) => {
+                const selected = field.options.find((o) => o.id === field.value) ?? field.options[0];
+                return (
+                  <div key={field.label}>
+                    <p className="mb-1 text-[11px] font-medium text-muted">{field.label}</p>
+                    <DropdownMenu.Root>
+                      <DropdownMenu.Trigger asChild>
+                        <button
+                          type="button"
+                          className="flex h-10 w-full items-center justify-between gap-2 rounded-xl border border-line-2 bg-paper/50 px-3 text-left text-xs text-ink transition-colors hover:border-gold hover:bg-white focus:border-gold focus:outline-none"
+                        >
+                          <span className="truncate" style={{ fontFamily: field.fontMap[selected.id as keyof typeof field.fontMap] }}>
+                            {field.sample} <span className="ml-1 text-[10px] text-muted" style={{ fontFamily: "var(--font-sans)" }}>· {selected.name}</span>
+                          </span>
+                          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted" />
+                        </button>
+                      </DropdownMenu.Trigger>
+                      <DropdownMenu.Portal>
+                        <DropdownMenu.Content
+                          sideOffset={6}
+                          align="start"
+                          className="z-50 w-[268px] max-h-64 overflow-y-auto rounded-2xl border border-line bg-white p-1.5 shadow-xl animate-[fade-up_0.18s_ease-out]"
+                        >
+                          {field.options.map((opt) => {
+                            const active = opt.id === field.value;
+                            return (
+                              <DropdownMenu.Item
+                                key={opt.id}
+                                onSelect={() => field.onPick(opt.id)}
+                                className={cn(
+                                  "flex cursor-pointer items-center justify-between gap-2 rounded-xl px-2.5 py-2 outline-none transition-colors",
+                                  active ? "bg-gold-soft/50 text-ink" : "text-ink-2 hover:bg-paper focus:bg-paper",
+                                )}
+                              >
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm" style={{ fontFamily: field.fontMap[opt.id as keyof typeof field.fontMap] }}>
+                                    {field.sample}
+                                  </p>
+                                  <p className="text-[10px] text-muted">{opt.name}</p>
+                                </div>
+                                {active ? <Check className="h-3.5 w-3.5 shrink-0 text-gold-2" /> : null}
+                              </DropdownMenu.Item>
+                            );
+                          })}
+                        </DropdownMenu.Content>
+                      </DropdownMenu.Portal>
+                    </DropdownMenu.Root>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
 
       <div className="space-y-3 rounded-2xl border border-line bg-white p-3.5 shadow-xs">

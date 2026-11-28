@@ -115,6 +115,14 @@ export const InvitationDocSchema = z.object({
       .object({ bg: hex, surface: hex, ink: hex, muted: hex, primary: hex, accent: hex, onPrimary: hex })
       .partial()
       .default({}),
+    fonts: z
+      .object({
+        display: z.enum(["moul", "moulpali", "dangrek", "kantumruy", "battambang", "notoSerif"]),
+        body: z.enum(["moul", "moulpali", "dangrek", "kantumruy", "battambang", "notoSerif"]),
+        latin: z.enum(["cormorant", "playfair", "pinyon", "inter"]),
+      })
+      .partial()
+      .optional(),
     envelope: z.boolean().default(true),
     music: z.object({ src: MediaRef.default(""), title: z.string().max(120).default("") }).default({ src: "", title: "" }),
     khmerNumerals: z.boolean().default(true),
