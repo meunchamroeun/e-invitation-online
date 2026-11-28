@@ -1,13 +1,14 @@
 "use server";
 
 import { z } from "zod";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne } from "drizzle-orm";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db, schema } from "@/lib/db";
-import { requireUser, destroySession } from "@/lib/auth/session";
+import { requireUser, destroySession, SESSION_COOKIE } from "@/lib/auth/session";
 import { verifyPassword, hashPassword } from "@/lib/security/password";
-import { generateToken } from "@/lib/security/tokens";
+import { generateToken, sha256 } from "@/lib/security/tokens";
 import { audit } from "@/lib/audit";
 import { getPlan } from "@/features/billing/queries";
 import type { ActionResult } from "@/features/events/actions";
@@ -31,6 +32,18 @@ export async function changePasswordAction(current: string, next: string): Promi
   await db.delete(schema.sessions).where(eq(schema.sessions.userId, u.id));
   await audit("user.password_change", { actorId: u.id });
   redirect("/login");
+}
+
+export async function signOutOtherSessionsAction(): Promise<ActionResult> {
+  const u = await requireUser();
+  const jar = await cookies();
+  const token = jar.get(SESSION_COOKIE)?.value;
+  if (!token) return { ok: false, error: "unauthorized" };
+  await db
+    .delete(schema.sessions)
+    .where(and(eq(schema.sessions.userId, u.id), ne(schema.sessions.id, sha256(token))));
+  revalidatePath("/dashboard/profile");
+  return { ok: true };
 }
 
 export async function telegramLinkCodeAction(): Promise<{ code: string; bot: string | null }> {
