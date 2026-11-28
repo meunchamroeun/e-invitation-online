@@ -19,7 +19,7 @@ import { TEMPLATES, getTemplate, type Palette as Pal } from "@/features/template
 import { saveDraftAction, listVersionsAction, restoreVersionAction } from "@/features/events/actions";
 import { InvitationRenderer } from "@/components/invitation/renderer";
 import type { EventInfo } from "@/components/invitation/sections";
-import { TemplateThumb } from "@/components/marketing/template-thumb";
+import { FluidThumb } from "@/components/marketing/template-thumb";
 import { PublishButton } from "@/components/dashboard/publish-button";
 import { Frame } from "./frame";
 import { FitDevice, FinishPicker, type Finish } from "@/components/ui/device-frame";
@@ -276,15 +276,15 @@ function BuilderEditor(props: BuilderProps) {
                   active ? "border-gold ring-2 ring-gold/25" : "border-line hover:border-gold/50",
                 )}
               >
-                <div className="relative aspect-[3/4] w-full overflow-hidden">
-                  <TemplateThumb slug={t.slug} locale={props.locale} width={118} />
+                <div className="relative w-full overflow-hidden">
+                  <FluidThumb slug={t.slug} locale={props.locale} />
                   {active ? (
                     <span className="absolute right-1.5 top-1.5 grid size-5 place-items-center rounded-full bg-gold text-white shadow">
                       <Check className="h-3 w-3" />
                     </span>
                   ) : null}
                 </div>
-                <span className={cn("truncate px-2 py-1.5 text-[11px] font-medium", active ? "bg-gold-soft/40 text-ink" : "bg-white text-ink-2")} dir="auto">
+                <span className={cn("line-clamp-2 px-2 py-1.5 text-[11px] leading-snug font-medium", active ? "bg-gold-soft/40 text-ink" : "bg-white text-ink-2")} dir="auto">
                   {t.name[props.locale]}
                 </span>
               </button>
