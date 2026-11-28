@@ -195,6 +195,11 @@ function BuilderEditor(props: BuilderProps) {
 
   const ThemePanel = (
     <div className="space-y-3.5 bg-[#F8F6F1] p-3.5">
+      <div className="space-y-3 rounded-2xl border border-line bg-white p-3.5 shadow-xs">
+        <MediaPicker c={ctx} label={L("រូបក្របតំណធៀប (Share Preview)", "Link preview cover")} value={doc.shareImage ?? ""}
+          onChange={(value) => set({ ...doc, shareImage: value })} />
+      </div>
+
       <div className="rounded-2xl border border-line bg-white p-3.5 shadow-xs">
         <div className="mb-2.5 flex items-center justify-between">
           <p className="text-xs font-semibold text-ink">{L("គំរូធៀប", "Template")}</p>
@@ -330,36 +335,25 @@ function BuilderEditor(props: BuilderProps) {
       </div>
 
       <div className="space-y-3 rounded-2xl border border-line bg-white p-3.5 shadow-xs">
-        <MediaPicker c={ctx} label={L("រូបក្របតំណធៀប (Share Preview)", "Link preview cover")} value={doc.shareImage ?? ""}
-          onChange={(value) => set({ ...doc, shareImage: value })} />
-      </div>
-
-      <div className="space-y-3 rounded-2xl border border-line bg-white p-3.5 shadow-xs">
         <MediaPicker c={ctx} purpose="audio" label={L("ភ្លេងផ្ទៃខាងក្រោយ (MP3)", "Background music (MP3)")} value={doc.theme.music.src}
           onChange={(v) => set({ ...doc, theme: { ...doc.theme, music: { ...doc.theme.music, src: v } } })} />
         {(adminTracksQuery.data?.length ?? 0) > 0 ? (
-          <div className="border-t border-line pt-2.5">
-            <p className="mb-1.5 text-[11px] font-medium text-muted">{L("ឬជ្រើសភ្លេងពីប្រព័ន្ធ (Admin)", "Or choose from Admin library")}</p>
-            <div className="max-h-40 space-y-1 overflow-y-auto pr-0.5">
-              {adminTracksQuery.data!.map((tr) => {
-                const active = doc.theme.music.src === tr.url;
-                return (
-                  <button
-                    key={tr.id}
-                    type="button"
-                    onClick={() => set({ ...doc, theme: { ...doc.theme, music: { src: tr.url, title: tr.title } } }, "music.preset")}
-                    className={cn(
-                      "flex w-full items-center justify-between gap-2 rounded-xl border px-2.5 py-2 text-left text-xs transition-all",
-                      active ? "border-gold bg-gold-soft/45 font-medium text-ink shadow-xs" : "border-line bg-paper/40 text-ink-2 hover:bg-white",
-                    )}
-                  >
-                    <span className="truncate" dir="auto">🎵 {tr.title}</span>
-                    {active ? <span className="shrink-0 text-[11px] text-gold-2">✓</span> : null}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <label className="block border-t border-line pt-2.5">
+            <span className="mb-1.5 block text-[11px] font-medium text-muted">{L("ឬជ្រើសភ្លេងពីប្រព័ន្ធ (Admin)", "Or choose from Admin library")}</span>
+            <select
+              value={adminTracksQuery.data!.some((tr) => tr.url === doc.theme.music.src) ? doc.theme.music.src : ""}
+              onChange={(e) => {
+                const tr = adminTracksQuery.data!.find((x) => x.url === e.target.value);
+                if (tr) set({ ...doc, theme: { ...doc.theme, music: { src: tr.url, title: tr.title } } }, "music.preset");
+              }}
+              className="h-9 w-full rounded-xl border border-line-2 bg-paper/40 px-2.5 text-xs font-medium text-ink focus:border-gold focus:outline-none"
+            >
+              <option value="">{L("— ជ្រើសរើសបទភ្លេង —", "— Select a song —")}</option>
+              {adminTracksQuery.data!.map((tr) => (
+                <option key={tr.id} value={tr.url}>🎵 {tr.title}</option>
+              ))}
+            </select>
+          </label>
         ) : null}
       </div>
     </div>
