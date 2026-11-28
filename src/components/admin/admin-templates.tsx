@@ -13,6 +13,7 @@ import { AnimatePresence, motion } from "motion/react";
 import {
   ArrowUpRight,
   Check,
+  ChevronDown,
   Copy,
   Crown,
   Eye,
@@ -23,6 +24,7 @@ import {
   MoreHorizontal,
   PencilLine,
   Search,
+  SlidersHorizontal,
   Sparkles,
   Star,
   X,
@@ -53,19 +55,6 @@ export type AdminTemplateItem = {
 type SortKey = "name" | "usage" | "popularity" | "version";
 type TierFilter = "all" | "free" | "premium";
 type VisibilityFilter = "all" | "published" | "hidden" | "featured";
-
-const chipVariants = cva(
-  "inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#86622f]/40",
-  {
-    variants: {
-      active: {
-        true: "border-[#86622f] bg-[#241c19] text-[#fffaf4] shadow-xs",
-        false: "border-[#e7e1d5] bg-white text-ink-2 hover:border-[#cbbba0] hover:bg-[#faf8f3]",
-      },
-    },
-    defaultVariants: { active: false },
-  },
-);
 
 const statCardVariants = cva(
   "relative overflow-hidden rounded-2xl border bg-white p-4 shadow-xs transition-shadow hover:shadow-sm",
@@ -427,12 +416,19 @@ export function AdminTemplatesWorkspace({ initialItems }: { initialItems: AdminT
   };
 
   const categories = useMemo(() => {
-    const map = new Map<string, string>();
+    const map = new Map<string, { label: string; count: number }>();
     for (const item of items) {
-      map.set(item.category, item.categoryLabel);
+      const existing = map.get(item.category);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        map.set(item.category, { label: item.categoryLabel, count: 1 });
+      }
     }
-    return Array.from(map.entries());
+    return Array.from(map.entries()).map(([key, val]) => ({ key, ...val }));
   }, [items]);
+  const activeCategoryLabel = categories.find((c) => c.key === category)?.label ?? "All Categories";
+  const hasActiveFilters = Boolean(query.trim() || category !== "all" || tier !== "all" || visibility !== "all");
 
   const stats = useMemo(() => {
     const published = items.filter((i) => i.isPublished).length;
@@ -702,66 +698,157 @@ export function AdminTemplatesWorkspace({ initialItems }: { initialItems: AdminT
           </div>
         </div>
 
-        {/* Category + Visibility + Tier Chips */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => setCategory("all")}
-              className={chipVariants({ active: category === "all" })}
-            >
-              All Categories
-            </button>
-            {categories.map(([key, label]) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setCategory(key)}
-                className={chipVariants({ active: category === key })}
+        {/* Clean Filter Row: Category Dropdown + Segmented Controls */}
+        <div className="flex flex-wrap items-center justify-between gap-2.5 border-t border-line pt-3">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Category Dropdown (Radix DropdownMenu) */}
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger asChild>
+                <button
+                  type="button"
+                  className={cn(
+                    "inline-flex h-9 items-center gap-2 rounded-xl border px-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#86622f]/40",
+                    category !== "all"
+                      ? "border-[#86622f]/50 bg-[#fcf6e8] text-[#6d4d20]"
+                      : "border-[#e7e1d5] bg-[#faf8f3] text-ink-2 hover:border-[#cbbba0]",
+                  )}
+                >
+                  <SlidersHorizontal size={13} aria-hidden="true" />
+                  <span>{activeCategoryLabel}</span>
+                  <ChevronDown size={13} className="opacity-65" aria-hidden="true" />
+                </button>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content
+                  align="start"
+                  sideOffset={6}
+                  className="z-50 max-h-80 min-w-56 overflow-y-auto rounded-xl border border-[#e7e1d5] bg-white p-1.5 shadow-xl"
+                >
+                  <DropdownMenu.Item
+                    onSelect={() => setCategory("all")}
+                    className={cn(
+                      "flex cursor-pointer items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-xs font-medium outline-none hover:bg-[#faf8f3]",
+                      category === "all" ? "bg-[#faf8f3] text-ink" : "text-ink-2",
+                    )}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Check size={13} className={category === "all" ? "opacity-100 text-[#86622f]" : "opacity-0"} aria-hidden="true" />
+                      All Categories
+                    </span>
+                    <span className="num rounded-full bg-black/[.05] px-1.5 py-0.5 text-[11px] text-muted">
+                      {items.length}
+                    </span>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Separator className="my-1 h-px bg-[#efe9dc]" />
+                  {categories.map((cat) => (
+                    <DropdownMenu.Item
+                      key={cat.key}
+                      onSelect={() => setCategory(cat.key)}
+                      className={cn(
+                        "flex cursor-pointer items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-xs font-medium outline-none hover:bg-[#faf8f3]",
+                        category === cat.key ? "bg-[#faf8f3] text-ink" : "text-ink-2",
+                      )}
+                    >
+                      <span className="flex items-center gap-2">
+                        <Check size={13} className={category === cat.key ? "opacity-100 text-[#86622f]" : "opacity-0"} aria-hidden="true" />
+                        {cat.label}
+                      </span>
+                      <span className="num rounded-full bg-black/[.05] px-1.5 py-0.5 text-[11px] text-muted">
+                        {cat.count}
+                      </span>
+                    </DropdownMenu.Item>
+                  ))}
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
+
+            {/* Visibility Segmented Control (Base UI Tabs + Motion) */}
+            <Tabs.Root value={visibility} onValueChange={(v) => setVisibility(v as VisibilityFilter)}>
+              <Tabs.List
+                aria-label="Filter by visibility"
+                className="inline-flex h-9 items-center rounded-xl border border-[#e7e1d5] bg-[#faf8f3] p-0.5"
               >
-                {label}
-              </button>
-            ))}
+                {(
+                  [
+                    ["all", "All"],
+                    ["published", "Published"],
+                    ["hidden", "Hidden"],
+                    ["featured", "Featured"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <Tabs.Tab
+                    key={key}
+                    value={key}
+                    className={cn(
+                      "relative z-10 rounded-lg px-2.5 py-1 text-xs font-medium transition-colors",
+                      visibility === key ? "text-[#241c19]" : "text-muted hover:text-ink",
+                    )}
+                  >
+                    {visibility === key ? (
+                      <motion.span
+                        layoutId="tpl-vis-pill"
+                        transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                        className="absolute inset-0 -z-10 rounded-lg bg-white shadow-xs"
+                      />
+                    ) : null}
+                    {label}
+                  </Tabs.Tab>
+                ))}
+              </Tabs.List>
+            </Tabs.Root>
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5">
-            {(
-              [
-                ["all", "All"],
-                ["published", "Published"],
-                ["hidden", "Hidden"],
-                ["featured", "Featured"],
-              ] as const
-            ).map(([key, label]) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setVisibility(key)}
-                className={chipVariants({ active: visibility === key })}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Tier Segmented Control (Base UI Tabs + Motion) */}
+            <Tabs.Root value={tier} onValueChange={(v) => setTier(v as TierFilter)}>
+              <Tabs.List
+                aria-label="Filter by tier"
+                className="inline-flex h-9 items-center rounded-xl border border-[#e7e1d5] bg-[#faf8f3] p-0.5"
               >
-                {label}
-              </button>
-            ))}
+                {(
+                  [
+                    ["all", "Any Tier"],
+                    ["free", "Free"],
+                    ["premium", "Premium"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <Tabs.Tab
+                    key={key}
+                    value={key}
+                    className={cn(
+                      "relative z-10 inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium transition-colors",
+                      tier === key ? "text-[#241c19]" : "text-muted hover:text-ink",
+                    )}
+                  >
+                    {tier === key ? (
+                      <motion.span
+                        layoutId="tpl-tier-pill"
+                        transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                        className="absolute inset-0 -z-10 rounded-lg bg-white shadow-xs"
+                      />
+                    ) : null}
+                    {key === "premium" ? <Crown size={12} aria-hidden="true" /> : null}
+                    {label}
+                  </Tabs.Tab>
+                ))}
+              </Tabs.List>
+            </Tabs.Root>
 
-            <span aria-hidden="true" className="mx-1 h-4 w-px bg-[#e7e1d5]" />
-
-            {(
-              [
-                ["all", "Any Tier"],
-                ["free", "Free"],
-                ["premium", "Premium"],
-              ] as const
-            ).map(([key, label]) => (
+            {hasActiveFilters ? (
               <button
-                key={key}
                 type="button"
-                onClick={() => setTier(key)}
-                className={chipVariants({ active: tier === key })}
+                onClick={() => {
+                  setQuery("");
+                  setCategory("all");
+                  setVisibility("all");
+                  setTier("all");
+                }}
+                className="inline-flex h-9 items-center gap-1 rounded-xl px-2.5 text-xs font-medium text-[#86622f] transition-colors hover:bg-[#fcf6e8]"
               >
-                {key === "premium" ? <Crown size={12} aria-hidden="true" /> : null}
-                {label}
+                <X size={13} aria-hidden="true" />
+                Reset
               </button>
-            ))}
+            ) : null}
           </div>
         </div>
 
