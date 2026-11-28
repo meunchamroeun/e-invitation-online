@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
+import { ensureUserAvatarColumn } from "@/lib/db/ensure-avatar";
 import { generateToken, sha256 } from "@/lib/security/tokens";
 
 export const SESSION_COOKIE = "ei_session";
@@ -13,6 +14,7 @@ export type SessionUser = {
   id: string;
   email: string;
   name: string;
+  avatarUrl?: string | null;
   role: string;
   locale: string;
   planCode: string;
@@ -52,11 +54,13 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   const jar = await cookies();
   const token = jar.get(SESSION_COOKIE)?.value;
   if (!token || token.length > 100) return null;
+  await ensureUserAvatarColumn();
   const rows = await db
     .select({
       id: schema.users.id,
       email: schema.users.email,
       name: schema.users.name,
+      avatarUrl: schema.users.avatarUrl,
       role: schema.users.role,
       locale: schema.users.locale,
       planCode: schema.users.planCode,

@@ -6,6 +6,6 @@ export const dynamic = "force-dynamic";
 export const metadata = { robots: { index: false }, title: "Admin" };
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
-  const { name, email } = await requireAdmin();
-  return <AdminShell name={name} email={email}>{children}</AdminShell>;
+  const { name, email, avatarUrl } = await requireAdmin();
+  return <AdminShell name={name} email={email} avatarUrl={avatarUrl}>{children}</AdminShell>;
 }

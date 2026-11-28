@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Avatar } from "@base-ui/react/avatar";
 import { motion } from "motion/react";
 import { ArrowUpRight, CalendarDays, CreditCard, History, LayoutGrid, Layers3, Music, PanelTop, ShieldCheck, UsersRound } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
@@ -19,7 +20,7 @@ const navigation = [
   { href: "/admin/audit-logs", label: "Audit logs", icon: History },
 ];
 
-export function AdminShell({ name, email, children }: { name: string; email: string; children: ReactNode }) {
+export function AdminShell({ name, email, avatarUrl, children }: { name: string; email: string; avatarUrl?: string | null; children: ReactNode }) {
   const pathname = usePathname();
   const selected = navigation.find(({ href }) => pathname === href) ?? navigation[0];
 
@@ -78,7 +79,10 @@ export function AdminShell({ name, email, children }: { name: string; email: str
               <span className="hidden text-ink-2 sm:inline">{selected.label}</span>
             </div>
             <div className="flex min-w-0 items-center gap-2.5">
-              <span aria-hidden="true" className="grid size-8 shrink-0 place-items-center rounded-full bg-gold-soft text-[13px] font-semibold text-[#664621]">{Array.from(name.trim())[0]?.toLocaleUpperCase() || "A"}</span>
+              <Avatar.Root className="relative inline-flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gold-soft text-[13px] font-semibold text-[#664621] select-none">
+                {avatarUrl ? <Avatar.Image src={avatarUrl} alt={name} referrerPolicy="no-referrer" className="size-full object-cover" /> : null}
+                <Avatar.Fallback className="grid size-full place-items-center">{Array.from(name.trim())[0]?.toLocaleUpperCase() || "A"}</Avatar.Fallback>
+              </Avatar.Root>
               <div className="min-w-0 leading-tight" title={email}>
                 <p className="max-w-[34vw] truncate text-xs font-semibold sm:max-w-48" dir="auto">{name}</p>
                 <p className="mt-0.5 text-[11px] text-muted">Super admin</p>

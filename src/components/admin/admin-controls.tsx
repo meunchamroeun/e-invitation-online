@@ -74,7 +74,7 @@ function UserAvatar({ name, avatarUrl }: { name: string; avatarUrl?: string | nu
   return (
     <Avatar.Root className="relative inline-flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#e7e1d5] bg-[#f4eddf] text-xs font-semibold text-[#765124] select-none">
       {avatarUrl ? (
-        <Avatar.Image src={avatarUrl} alt={name} className="size-full object-cover" />
+        <Avatar.Image src={avatarUrl} alt={name} referrerPolicy="no-referrer" className="size-full object-cover" />
       ) : null}
       <Avatar.Fallback className="grid size-full place-items-center">{initials}</Avatar.Fallback>
     </Avatar.Root>

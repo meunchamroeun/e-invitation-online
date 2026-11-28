@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
+import { ensureUserAvatarColumn } from "@/lib/db/ensure-avatar";
 import { createSession } from "@/lib/auth/session";
 import { audit } from "@/lib/audit";
 import { appUrl } from "@/features/guests/links";
@@ -61,6 +62,7 @@ export async function GET(req: NextRequest) {
 
   const email = profile.email.trim().toLowerCase();
   const avatarUrl = typeof profile.picture === "string" && profile.picture.startsWith("https://") ? profile.picture.slice(0, 500) : null;
+  await ensureUserAvatarColumn();
   const [existing] = await db.select().from(schema.users).where(eq(schema.users.email, email)).limit(1);
   let userId = existing?.id;
   if (existing?.deletedAt || existing?.suspendedAt) return NextResponse.redirect(new URL("/login?error=oauth_failed", req.url));

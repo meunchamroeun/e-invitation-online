@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import crypto from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
+import { ensureUserAvatarColumn } from "@/lib/db/ensure-avatar";
 import { createSession } from "@/lib/auth/session";
 import { audit } from "@/lib/audit";
 
@@ -40,6 +41,7 @@ async function handleTelegramUser(data: Record<string, string>) {
   const email = `tg_${tg.id}@telegram.local`;
   const displayName = [tg.first_name, tg.last_name].filter(Boolean).join(" ").trim() || tg.username || `Telegram ${tg.id}`;
   const avatarUrl = typeof tg.photo_url === "string" && tg.photo_url.startsWith("https://") ? tg.photo_url.slice(0, 500) : null;
+  await ensureUserAvatarColumn();
   const [existing] = await db.select().from(schema.users).where(eq(schema.users.email, email)).limit(1);
   if (existing?.deletedAt || existing?.suspendedAt) return null;
 

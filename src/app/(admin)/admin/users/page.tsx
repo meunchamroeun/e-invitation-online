@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { and, count, desc, eq, ilike, isNotNull, isNull, or } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
+import { ensureUserAvatarColumn } from "@/lib/db/ensure-avatar";
 import { requireAdmin } from "@/lib/auth/session";
 import { shortDate } from "@/i18n/format";
 import { accountIdPattern } from "@/components/admin/admin-audit";
@@ -54,6 +55,7 @@ export default async function AdminUsers({ searchParams }: { searchParams: Promi
   }[] = [];
 
   if (total) {
+    await ensureUserAvatarColumn();
     try {
       rows = await db.select({
         id: users.id, name: users.name, email: users.email, avatarUrl: users.avatarUrl, createdAt: users.createdAt, role: users.role,
