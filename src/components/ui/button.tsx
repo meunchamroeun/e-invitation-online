@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 // Adapted from the shadcn/ui Radix Button to use Theab’s original variants and sizes.
 const buttonVariants = cva(
-  "inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-full font-medium transition-[background,border,filter,transform] active:scale-[.98] disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex cursor-pointer select-none items-center justify-center gap-2 whitespace-nowrap rounded-full font-medium transition-[background,border,filter,transform] active:scale-[.98] disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
