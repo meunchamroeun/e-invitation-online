@@ -1346,27 +1346,49 @@ function GallerySection({ s, ctx }: { s: Extract<Section, { type: "gallery" }>; 
       ) : null}
       </AnimatePresence>
       {open !== null && photos.length ? (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black/92 p-4 backdrop-blur-sm"
-          onTouchStart={(e) => setTouchX(e.touches[0].clientX)}
-          onTouchEnd={(e) => { if (touchX === null) return; const dx = e.changedTouches[0].clientX - touchX; if (Math.abs(dx) > 40) setOpen((o) => (o! + (dx < 0 ? 1 : -1) + photos.length) % photos.length); setTouchX(null); }}>
-          <div className="absolute left-4 top-4 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur-md">
-            {String(open + 1).padStart(2, "0")} · {String(photos.length).padStart(2, "0")}
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={(e) => { if (e.target === e.currentTarget) setOpen(null); }}
+          className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black/92 p-4 backdrop-blur-sm"
+        >
+          <div className="pointer-events-none absolute inset-x-4 top-[max(1rem,env(safe-area-inset-top))] z-30 flex items-center justify-between">
+            <div className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur-md">
+              {String(open + 1).padStart(2, "0")} · {String(photos.length).padStart(2, "0")}
+            </div>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setOpen(null); }}
+              className="pointer-events-auto grid size-11 place-items-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/25 active:scale-95"
+              aria-label="Close"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
-          <button onClick={() => setOpen(null)} className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white transition-colors hover:bg-white/20" aria-label="Close"><X className="h-5 w-5" /></button>
-          <div className="inv-lightbox-in relative flex w-full max-w-lg flex-1 items-center justify-center">
-            <button onClick={() => setOpen((open - 1 + photos.length) % photos.length)} className="absolute left-2 z-10 rounded-full bg-white/15 p-2.5 text-white backdrop-blur-md transition-transform hover:scale-110" aria-label="Previous"><ChevronLeft /></button>
-            <div key={open} className="inv-photo-fade aspect-[3/4] max-h-[72vh] w-full overflow-hidden rounded-xl shadow-2xl">
+          <div
+            className="inv-lightbox-in relative flex w-full max-w-lg flex-1 items-center justify-center"
+            onTouchStart={(e) => setTouchX(e.touches[0].clientX)}
+            onTouchEnd={(e) => {
+              if (touchX === null) return;
+              const dx = e.changedTouches[0].clientX - touchX;
+              if (Math.abs(dx) > 40) setOpen((o) => (o! + (dx < 0 ? 1 : -1) + photos.length) % photos.length);
+              setTouchX(null);
+            }}
+          >
+            <button type="button" onClick={(e) => { e.stopPropagation(); setOpen((open - 1 + photos.length) % photos.length); }} className="absolute left-2 z-20 rounded-full bg-white/15 p-2.5 text-white backdrop-blur-md transition-transform hover:scale-110" aria-label="Previous"><ChevronLeft /></button>
+            <div key={open} onClick={(e) => e.stopPropagation()} className="inv-photo-fade aspect-[3/4] max-h-[72vh] w-full overflow-hidden rounded-xl shadow-2xl">
               <Photo src={photos[open].src} alt={ctx.tx(photos[open].caption)} />
             </div>
-            <button onClick={() => setOpen((open + 1) % photos.length)} className="absolute right-2 z-10 rounded-full bg-white/15 p-2.5 text-white backdrop-blur-md transition-transform hover:scale-110" aria-label="Next"><ChevronRight /></button>
+            <button type="button" onClick={(e) => { e.stopPropagation(); setOpen((open + 1) % photos.length); }} className="absolute right-2 z-20 rounded-full bg-white/15 p-2.5 text-white backdrop-blur-md transition-transform hover:scale-110" aria-label="Next"><ChevronRight /></button>
           </div>
           {ctx.tx(photos[open].caption) ? <p className="mt-2 text-sm text-white/80">{ctx.tx(photos[open].caption)}</p> : null}
           {photos.length > 1 ? (
-            <div className="mt-4 flex max-w-full gap-2 overflow-x-auto px-2 pb-1">
+            <div className="z-20 mt-4 flex max-w-full gap-2 overflow-x-auto px-2 pb-1">
               {photos.map((p, i) => (
                 <button
                   key={i}
-                  onClick={() => setOpen(i)}
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setOpen(i); }}
                   className={`h-14 w-11 shrink-0 overflow-hidden rounded-md transition-all duration-300 ${i === open ? "scale-105 opacity-100 ring-2 ring-[#E9A96E]" : "opacity-50 hover:opacity-80"}`}
                   aria-label={`Photo ${i + 1}`}
                 >
@@ -1473,7 +1495,7 @@ function VenueSection({ s, ctx }: { s: Extract<Section, { type: "venue" }>; ctx:
       </Reveal>
       {zoom && hasDrawnMap ? (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-3" onClick={() => setZoom(false)}>
-          <button className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white" aria-label="Close"><X className="h-5 w-5" /></button>
+          <button type="button" onClick={(e) => { e.stopPropagation(); setZoom(false); }} className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] z-30 grid size-11 place-items-center rounded-full bg-white/15 text-white" aria-label="Close"><X className="h-5 w-5" /></button>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={s.data.mapImage} alt={ctx.d.map} className="max-h-[90vh] max-w-full rounded-lg object-contain" style={{ touchAction: "pinch-zoom" }} />
         </div>
