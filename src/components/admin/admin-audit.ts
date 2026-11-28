@@ -6,6 +6,7 @@ export const auditActionLabels: Record<string, string> = {
   "admin.event_archived": "Archived event",
   "admin.event_restored": "Restored event",
   "admin.template": "Updated template settings",
+  "admin.template.bulk": "Bulk updated templates",
   "admin.plan_update": "Updated subscription plan",
   "admin.billing_approved": "Approved payment",
   "admin.billing_rejected": "Rejected payment",
@@ -44,6 +45,14 @@ export function auditSummary(action: string, meta: unknown) {
   if (action === "admin.template") {
     return [
       typeof slug === "string" ? slug : null,
+      typeof tier === "string" ? tier : null,
+      typeof isPublished === "boolean" ? (isPublished ? "published" : "hidden") : null,
+      typeof isFeatured === "boolean" ? (isFeatured ? "featured" : "unfeatured") : null,
+    ].filter(Boolean).join(" · ");
+  }
+  if (action === "admin.template.bulk") {
+    return [
+      typeof count === "number" ? `${count} templates` : null,
       typeof tier === "string" ? tier : null,
       typeof isPublished === "boolean" ? (isPublished ? "published" : "hidden") : null,
       typeof isFeatured === "boolean" ? (isFeatured ? "featured" : "unfeatured") : null,

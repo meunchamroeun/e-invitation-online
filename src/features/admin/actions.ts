@@ -100,17 +100,23 @@ export async function setEventArchivedAction(eventId: string, archived: boolean)
   return result;
 }
 
-export async function updateTemplateFlagsAction(slug: string, flags: { isPublished?: boolean; isFeatured?: boolean; tier?: "free" | "premium" }): Promise<ActionResult> {
+export async function updateTemplateFlagsAction(slug: string, flags: { isPublished?: boolean; isFeatured?: boolean; tier?: "free" | "premium"; popularity?: number }): Promise<ActionResult> {
   const admin = await requireAdmin();
   const template = z.string().min(1).max(80).safeParse(slug).success ? getTemplate(slug) : undefined;
-  const parsed = z.object({ isPublished: z.boolean().optional(), isFeatured: z.boolean().optional(), tier: z.enum(["free", "premium"]).optional() }).safeParse(flags);
+  const parsed = z.object({
+    isPublished: z.boolean().optional(),
+    isFeatured: z.boolean().optional(),
+    tier: z.enum(["free", "premium"]).optional(),
+    popularity: z.number().int().min(0).max(10_000).optional(),
+  }).safeParse(flags);
   if (!template) return { ok: false, error: "not_found" };
   if (!parsed.success || !Object.values(parsed.data).some((v) => v !== undefined)) return { ok: false, error: "invalid" };
   const p = parsed.data;
   await db.transaction(async (tx) => {
     const [row] = await tx.insert(schema.templates).values({
       slug, nameKm: template.name.km, nameEn: template.name.en, category: template.category, style: template.style, color: template.color,
-      tier: p.tier ?? template.tier, isFeatured: p.isFeatured ?? Boolean(template.featured), isPublished: p.isPublished ?? true, currentVersion: template.version,
+      tier: p.tier ?? template.tier, isFeatured: p.isFeatured ?? Boolean(template.featured), isPublished: p.isPublished ?? true,
+      popularity: p.popularity ?? 0, currentVersion: template.version,
     }).onConflictDoUpdate({ target: schema.templates.slug, set: { ...p, updatedAt: new Date() } }).returning({ id: schema.templates.id });
     await tx.insert(schema.templateVersions).values({ templateId: row.id, version: template.version, definition: template }).onConflictDoNothing();
     await tx.insert(schema.auditLogs).values({ action: "admin.template", actorId: admin.id, meta: { slug, ...p } });
@@ -118,6 +124,53 @@ export async function updateTemplateFlagsAction(slug: string, flags: { isPublish
   revalidatePath("/admin", "layout");
   revalidatePath("/templates");
   revalidatePath(`/templates/${slug}`);
+  revalidatePath("/");
+  revalidatePath("/sitemap.xml");
+  return { ok: true };
+}
+
+export async function bulkUpdateTemplatesAction(
+  slugs: string[],
+  flags: { isPublished?: boolean; isFeatured?: boolean; tier?: "free" | "premium" },
+): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const parsedSlugs = z.array(z.string().min(1).max(80)).min(1).max(100).safeParse(slugs);
+  const parsedFlags = z.object({
+    isPublished: z.boolean().optional(),
+    isFeatured: z.boolean().optional(),
+    tier: z.enum(["free", "premium"]).optional(),
+  }).safeParse(flags);
+  if (!parsedSlugs.success || !parsedFlags.success || !Object.values(parsedFlags.data).some((v) => v !== undefined)) {
+    return { ok: false, error: "invalid" };
+  }
+  const uniqueSlugs = Array.from(new Set(parsedSlugs.data));
+  const validTemplates = uniqueSlugs
+    .map((s) => getTemplate(s))
+    .filter((t): t is NonNullable<ReturnType<typeof getTemplate>> => Boolean(t));
+  if (validTemplates.length === 0) return { ok: false, error: "not_found" };
+
+  const p = parsedFlags.data;
+  await db.transaction(async (tx) => {
+    for (const template of validTemplates) {
+      const [row] = await tx.insert(schema.templates).values({
+        slug: template.slug, nameKm: template.name.km, nameEn: template.name.en, category: template.category, style: template.style, color: template.color,
+        tier: p.tier ?? template.tier, isFeatured: p.isFeatured ?? Boolean(template.featured), isPublished: p.isPublished ?? true,
+        currentVersion: template.version,
+      }).onConflictDoUpdate({ target: schema.templates.slug, set: { ...p, updatedAt: new Date() } }).returning({ id: schema.templates.id });
+      await tx.insert(schema.templateVersions).values({ templateId: row.id, version: template.version, definition: template }).onConflictDoNothing();
+    }
+    await tx.insert(schema.auditLogs).values({
+      action: "admin.template.bulk",
+      actorId: admin.id,
+      meta: { count: validTemplates.length, slugs: validTemplates.map((t) => t.slug), ...p },
+    });
+  });
+
+  revalidatePath("/admin", "layout");
+  revalidatePath("/templates");
+  for (const template of validTemplates) {
+    revalidatePath(`/templates/${template.slug}`);
+  }
   revalidatePath("/");
   revalidatePath("/sitemap.xml");
   return { ok: true };
