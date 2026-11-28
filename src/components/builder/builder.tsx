@@ -26,6 +26,7 @@ import { FitDevice, FinishPicker, type Finish } from "@/components/ui/device-fra
 import { isDark, KHMER_FONT, LATIN_FONT } from "@/components/invitation/theme";
 import { historyReducer, initHistory, type HistoryAction } from "./history";
 import { SectionEditor, MediaPicker, type EditorCtx, type MediaItem } from "./section-editor";
+import { AiBuilderPanel } from "./ai-panel";
 import { cn } from "@/lib/utils";
 
 type SaveState = "saved" | "dirty" | "saving" | "error" | "conflict";
@@ -55,8 +56,8 @@ function BuilderEditor(props: BuilderProps) {
   const [device, setDevice] = useState<Device>("mobile");
   const [finish, setFinish] = useState<Finish>("black");
   const [previewLocale, setPreviewLocale] = useState<"km" | "en">(props.locale);
-  const [panel, setPanel] = useState<"sections" | "theme" | "versions">("sections");
-  const [mobileView, setMobileView] = useState<"sections" | "edit" | "theme" | "preview">("preview");
+  const [panel, setPanel] = useState<"sections" | "theme" | "ai" | "versions">("sections");
+  const [mobileView, setMobileView] = useState<"sections" | "edit" | "theme" | "ai" | "preview">("preview");
   const [media, setMedia] = useState(props.media);
   const [save, setSave] = useState<SaveState>("saved");
   const [saveErr, setSaveErr] = useState("");
@@ -644,14 +645,16 @@ function BuilderEditor(props: BuilderProps) {
       {save === "error" && saveErr ? <div className="border-b border-danger/20 bg-danger/8 px-4 py-2 text-sm text-danger">{saveErr}</div> : null}
 
       {/* Desktop: 3 panes */}
-      <div className="hidden min-h-0 flex-1 lg:grid lg:grid-cols-[280px_1fr_340px]">
+      <div className="hidden min-h-0 flex-1 lg:grid lg:grid-cols-[296px_1fr_340px]">
         <aside className="flex min-h-0 flex-col border-r border-line bg-[#F8F7F4]">
           <div className="flex gap-1 border-b border-line p-2">
-            {([["sections", Layers, L("ផ្នែក", "Sections")], ["theme", Palette, L("រចនា", "Design")], ["versions", HistoryIcon, L("កំណែ", "Versions")]] as const).map(([k, I, label]) => (
-              <button key={k} onClick={() => setPanel(k)} className={cn("flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-medium", panel === k ? "bg-white shadow-sm" : "text-muted hover:text-ink")}><I className="h-3.5 w-3.5" />{label}</button>
+            {([["sections", Layers, L("ផ្នែក", "Sections")], ["theme", Palette, L("រចនា", "Design")], ["ai", Sparkles, "AI"], ["versions", HistoryIcon, L("កំណែ", "Versions")]] as const).map(([k, I, label]) => (
+              <button key={k} onClick={() => setPanel(k)} className={cn("flex flex-1 items-center justify-center gap-1 rounded-lg py-2 text-[11px] font-medium", panel === k ? "bg-white shadow-sm" : "text-muted hover:text-ink")}><I className="h-3.5 w-3.5" />{label}</button>
             ))}
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto">{panel === "sections" ? SectionsPanel : panel === "theme" ? ThemePanel : VersionsPanel}</div>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {panel === "sections" ? SectionsPanel : panel === "theme" ? ThemePanel : panel === "ai" ? <AiBuilderPanel eventId={props.eventId} locale={props.locale} doc={doc} onApplyDoc={set} /> : VersionsPanel}
+          </div>
         </aside>
         <div className="min-h-0">{Canvas}</div>
         <aside className="min-h-0 overflow-y-auto border-l border-line bg-white">{PropsPanel}</aside>
@@ -659,10 +662,10 @@ function BuilderEditor(props: BuilderProps) {
 
       {/* Mobile: one view at a time */}
       <div className="min-h-0 flex-1 overflow-y-auto bg-white lg:hidden">
-        {mobileView === "preview" ? <div className="h-full bg-[#ECE9E3]">{Canvas}</div> : mobileView === "sections" ? SectionsPanel : mobileView === "theme" ? <>{ThemePanel}{VersionsPanel}</> : PropsPanel}
+        {mobileView === "preview" ? <div className="h-full bg-[#ECE9E3]">{Canvas}</div> : mobileView === "sections" ? SectionsPanel : mobileView === "theme" ? <>{ThemePanel}{VersionsPanel}</> : mobileView === "ai" ? <AiBuilderPanel eventId={props.eventId} locale={props.locale} doc={doc} onApplyDoc={set} /> : PropsPanel}
       </div>
-      <nav className="grid shrink-0 grid-cols-4 border-t border-line bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
-        {([["preview", Eye, L("មើល", "Preview")], ["sections", Layers, L("ផ្នែក", "Sections")], ["edit", Pencil, L("កែ", "Edit")], ["theme", Palette, L("រចនា", "Design")]] as const).map(([k, I, label]) => (
+      <nav className="grid shrink-0 grid-cols-5 border-t border-line bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
+        {([["preview", Eye, L("មើល", "Preview")], ["sections", Layers, L("ផ្នែក", "Sections")], ["edit", Pencil, L("កែ", "Edit")], ["theme", Palette, L("រចនា", "Design")], ["ai", Sparkles, "AI"]] as const).map(([k, I, label]) => (
           <button key={k} onClick={() => setMobileView(k)} className={cn("flex flex-col items-center gap-0.5 py-2 text-[11px]", mobileView === k ? "text-gold-2" : "text-muted")}><I className="h-5 w-5" />{label}</button>
         ))}
       </nav>

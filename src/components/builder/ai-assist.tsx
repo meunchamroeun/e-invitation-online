@@ -14,7 +14,7 @@ export function AiAssist({ eventId, locale, onUse }: { eventId: string; locale: 
   const [pending, start] = useTransition();
   useEffect(() => { aiStatusAction().then((s) => setEnabled(s.enabled)); }, []);
   if (enabled === null) return null;
-  if (!enabled) return <p className="rounded-xl border border-dashed border-line-2 p-3 text-xs leading-5 text-muted"><Sparkles className="mr-1 inline h-3.5 w-3.5" />{L("ជំនួយការ AI មិនទាន់បើក (ANTHROPIC_API_KEY)។ អ្នកអាចសរសេរដោយផ្ទាល់ខាងលើ។", "AI assistant isn't configured on this server (ANTHROPIC_API_KEY). You can write the text manually above.")}</p>;
+  if (!enabled) return <p className="rounded-xl border border-dashed border-line-2 p-3 text-xs leading-5 text-muted"><Sparkles className="mr-1 inline h-3.5 w-3.5" />{L("ជំនួយការ AI មិនទាន់បើក (GEMINI_API_KEY)។ អ្នកអាចសរសេរដោយផ្ទាល់ខាងលើ។", "AI assistant isn't configured on this server (GEMINI_API_KEY). You can write the text manually above.")}</p>;
   return (
     <div className="space-y-2 rounded-xl border border-gold/30 bg-gold-soft/40 p-3">
       <p className="flex items-center gap-1.5 text-xs font-semibold text-gold-2"><Sparkles className="h-3.5 w-3.5" />{L("ស្នើពាក្យអញ្ជើញដោយ AI", "Suggest wording with AI")}</p>
