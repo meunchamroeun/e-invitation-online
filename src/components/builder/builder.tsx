@@ -257,17 +257,39 @@ function BuilderEditor(props: BuilderProps) {
       </div>
 
       <div className="rounded-2xl border border-line bg-white p-3.5 shadow-xs">
-        <div className="mb-2.5 flex items-center justify-between">
+        <div className="mb-2.5 flex items-center justify-between gap-2">
           <p className="text-xs font-semibold text-ink">{L("គំរូធៀប", "Template")}</p>
           <span className="text-[11px] text-muted">{L("រក្សាទុកខ្លឹមសារដដែល", "Keeps your content")}</span>
         </div>
-        <div className="grid grid-cols-3 gap-2">
-          {TEMPLATES.filter((t) => props.templateSlugs.includes(t.slug) || t.slug === tplSlug).map((t) => (
-            <button key={t.slug} type="button" onClick={() => setTplSlug(t.slug)} title={t.name[props.locale]} aria-pressed={tplSlug === t.slug}
-              className={cn("overflow-hidden rounded-xl border-2 transition-all", tplSlug === t.slug ? "border-gold ring-2 ring-gold/25" : "border-transparent hover:border-line-2")}>
-              <TemplateThumb slug={t.slug} locale={props.locale} width={76} />
-            </button>
-          ))}
+        <div className="grid max-h-[340px] grid-cols-2 gap-2.5 overflow-y-auto pr-1">
+          {TEMPLATES.filter((t) => props.templateSlugs.includes(t.slug) || t.slug === tplSlug).map((t) => {
+            const active = tplSlug === t.slug;
+            return (
+              <button
+                key={t.slug}
+                type="button"
+                onClick={() => setTplSlug(t.slug)}
+                title={t.name[props.locale]}
+                aria-pressed={active}
+                className={cn(
+                  "group relative flex flex-col overflow-hidden rounded-xl border-2 bg-paper/40 text-left transition-all",
+                  active ? "border-gold ring-2 ring-gold/25" : "border-line hover:border-gold/50",
+                )}
+              >
+                <div className="relative aspect-[3/4] w-full overflow-hidden">
+                  <TemplateThumb slug={t.slug} locale={props.locale} width={118} />
+                  {active ? (
+                    <span className="absolute right-1.5 top-1.5 grid size-5 place-items-center rounded-full bg-gold text-white shadow">
+                      <Check className="h-3 w-3" />
+                    </span>
+                  ) : null}
+                </div>
+                <span className={cn("truncate px-2 py-1.5 text-[11px] font-medium", active ? "bg-gold-soft/40 text-ink" : "bg-white text-ink-2")} dir="auto">
+                  {t.name[props.locale]}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
