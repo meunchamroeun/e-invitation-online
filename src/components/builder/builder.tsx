@@ -7,10 +7,11 @@ import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, us
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Tooltip } from "@base-ui/react/tooltip";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createStore, useStore } from "zustand";
 import {
-  ArrowLeft, Check, CloudOff, Copy, Eye, EyeOff, GripVertical, History as HistoryIcon, Layers, Loader2, Monitor, Palette, Pencil, Plus, Redo2, RotateCcw, Smartphone, Tablet, Trash2, Undo2, AlertTriangle,
+  ArrowLeft, Ban, Check, ChevronDown, CloudOff, Copy, Eye, EyeOff, Flower2, GripVertical, History as HistoryIcon, Layers, Leaf, Loader2, Monitor, Music, Palette, PartyPopper, Pencil, Plus, Redo2, RotateCcw, Smartphone, Sparkles, Star, Tablet, Trash2, Undo2, AlertTriangle,
 } from "lucide-react";
 import type { InvitationDoc, Section, SectionType } from "@/features/invitations/doc";
 import { SECTION_LABELS, SECTION_TYPES, blankSection } from "@/features/invitations/doc";
@@ -193,11 +194,66 @@ function BuilderEditor(props: BuilderProps) {
     staleTime: 60_000,
   });
 
+  const selectedAdminTrack = adminTracksQuery.data?.find((tr) => tr.url === doc.theme.music.src);
+
   const ThemePanel = (
     <div className="space-y-3.5 bg-[#F8F6F1] p-3.5">
       <div className="space-y-3 rounded-2xl border border-line bg-white p-3.5 shadow-xs">
         <MediaPicker c={ctx} label={L("រូបក្របតំណធៀប (Share Preview)", "Link preview cover")} value={doc.shareImage ?? ""}
           onChange={(value) => set({ ...doc, shareImage: value })} />
+      </div>
+
+      <div className="space-y-3 rounded-2xl border border-line bg-white p-3.5 shadow-xs">
+        <MediaPicker c={ctx} purpose="audio" label={L("ភ្លេងផ្ទៃខាងក្រោយ (MP3)", "Background music (MP3)")} value={doc.theme.music.src}
+          onChange={(v) => set({ ...doc, theme: { ...doc.theme, music: { ...doc.theme.music, src: v } } })} />
+        {(adminTracksQuery.data?.length ?? 0) > 0 ? (
+          <div className="border-t border-line pt-2.5">
+            <p className="mb-1.5 text-[11px] font-medium text-muted">{L("ឬជ្រើសភ្លេងពីប្រព័ន្ធ (Admin)", "Or choose from Admin library")}</p>
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger asChild>
+                <button
+                  type="button"
+                  className="flex h-9 w-full items-center justify-between gap-2 rounded-xl border border-line-2 bg-paper/50 px-3 text-left text-xs font-medium text-ink transition-colors hover:border-gold hover:bg-white focus:border-gold focus:outline-none"
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <Music className="h-3.5 w-3.5 shrink-0 text-gold-2" />
+                    <span className="truncate" dir="auto">
+                      {selectedAdminTrack ? selectedAdminTrack.title : L("ជ្រើសរើសបទភ្លេង...", "Select a song...")}
+                    </span>
+                  </span>
+                  <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted" />
+                </button>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content
+                  sideOffset={6}
+                  align="start"
+                  className="z-50 w-[260px] max-h-60 overflow-y-auto rounded-2xl border border-line bg-white p-1.5 shadow-xl animate-[fade-up_0.18s_ease-out]"
+                >
+                  {adminTracksQuery.data!.map((tr) => {
+                    const active = doc.theme.music.src === tr.url;
+                    return (
+                      <DropdownMenu.Item
+                        key={tr.id}
+                        onSelect={() => set({ ...doc, theme: { ...doc.theme, music: { src: tr.url, title: tr.title } } }, "music.preset")}
+                        className={cn(
+                          "flex cursor-pointer items-center justify-between gap-2 rounded-xl px-2.5 py-2 text-xs outline-none transition-colors",
+                          active ? "bg-gold-soft/50 font-medium text-ink" : "text-ink-2 hover:bg-paper focus:bg-paper",
+                        )}
+                      >
+                        <span className="flex min-w-0 items-center gap-2">
+                          <Music className="h-3.5 w-3.5 shrink-0 text-gold-2" />
+                          <span className="truncate" dir="auto">{tr.title}</span>
+                        </span>
+                        {active ? <Check className="h-3.5 w-3.5 shrink-0 text-gold-2" /> : null}
+                      </DropdownMenu.Item>
+                    );
+                  })}
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
+          </div>
+        ) : null}
       </div>
 
       <div className="rounded-2xl border border-line bg-white p-3.5 shadow-xs">
@@ -306,15 +362,15 @@ function BuilderEditor(props: BuilderProps) {
           <p className="mb-1.5 text-[11px] font-medium text-muted">{L("បែបផែនអណ្ដែត", "Floating particles")}</p>
           <div className="grid grid-cols-2 gap-1.5">
             {([
-              ["auto", L("✨ តាមគំរូ", "✨ Auto")],
-              ["petals", L("🌹 ផ្កាកុលាប", "🌹 Petals")],
-              ["lotus", L("🪷 ផ្កាឈូក", "🪷 Lotus")],
-              ["gold", L("✨ ធូលីមាស", "✨ Gold dust")],
-              ["stars", L("⭐ ផ្កាយភ្លឺ", "⭐ Stars")],
-              ["confetti", L("🎊 ក្រដាសពណ៌", "🎊 Confetti")],
-              ["leaves", L("🍃 ស្លឹកឈើ", "🍃 Leaves")],
-              ["none", L("🚫 គ្មាន", "🚫 None")],
-            ] as const).map(([val, label]) => {
+              ["auto", L("តាមគំរូ", "Auto"), Sparkles],
+              ["petals", L("ផ្កាកុលាប", "Petals"), Flower2],
+              ["lotus", L("ផ្កាឈូក", "Lotus"), Flower2],
+              ["gold", L("ធូលីមាស", "Gold dust"), Sparkles],
+              ["stars", L("ផ្កាយភ្លឺ", "Stars"), Star],
+              ["confetti", L("ក្រដាសពណ៌", "Confetti"), PartyPopper],
+              ["leaves", L("ស្លឹកឈើ", "Leaves"), Leaf],
+              ["none", L("គ្មាន", "None"), Ban],
+            ] as const).map(([val, label, Icon]) => {
               const on = doc.theme.motion.particles === val;
               return (
                 <button
@@ -322,39 +378,17 @@ function BuilderEditor(props: BuilderProps) {
                   type="button"
                   onClick={() => set({ ...doc, theme: { ...doc.theme, motion: { ...doc.theme.motion, particles: val } } })}
                   className={cn(
-                    "rounded-xl border px-2.5 py-1.5 text-left text-[11px] font-medium transition-all",
+                    "flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-left text-[11px] font-medium transition-all",
                     on ? "border-gold bg-gold-soft/45 text-ink shadow-xs" : "border-line bg-paper/40 text-ink-2 hover:bg-white",
                   )}
                 >
-                  {label}
+                  <Icon className={cn("h-3.5 w-3.5 shrink-0", on ? "text-gold-2" : "text-muted")} />
+                  <span className="truncate">{label}</span>
                 </button>
               );
             })}
           </div>
         </div>
-      </div>
-
-      <div className="space-y-3 rounded-2xl border border-line bg-white p-3.5 shadow-xs">
-        <MediaPicker c={ctx} purpose="audio" label={L("ភ្លេងផ្ទៃខាងក្រោយ (MP3)", "Background music (MP3)")} value={doc.theme.music.src}
-          onChange={(v) => set({ ...doc, theme: { ...doc.theme, music: { ...doc.theme.music, src: v } } })} />
-        {(adminTracksQuery.data?.length ?? 0) > 0 ? (
-          <label className="block border-t border-line pt-2.5">
-            <span className="mb-1.5 block text-[11px] font-medium text-muted">{L("ឬជ្រើសភ្លេងពីប្រព័ន្ធ (Admin)", "Or choose from Admin library")}</span>
-            <select
-              value={adminTracksQuery.data!.some((tr) => tr.url === doc.theme.music.src) ? doc.theme.music.src : ""}
-              onChange={(e) => {
-                const tr = adminTracksQuery.data!.find((x) => x.url === e.target.value);
-                if (tr) set({ ...doc, theme: { ...doc.theme, music: { src: tr.url, title: tr.title } } }, "music.preset");
-              }}
-              className="h-9 w-full rounded-xl border border-line-2 bg-paper/40 px-2.5 text-xs font-medium text-ink focus:border-gold focus:outline-none"
-            >
-              <option value="">{L("— ជ្រើសរើសបទភ្លេង —", "— Select a song —")}</option>
-              {adminTracksQuery.data!.map((tr) => (
-                <option key={tr.id} value={tr.url}>🎵 {tr.title}</option>
-              ))}
-            </select>
-          </label>
-        ) : null}
       </div>
     </div>
   );
