@@ -310,7 +310,7 @@ export function AdminPlanForm({ plan }: { plan: PlanForm }) {
   };
 
   return (
-    <form className="overflow-hidden rounded-xl border border-[#e7e1d5] bg-white" onSubmit={submit} onChange={clear}>
+    <form className="overflow-hidden rounded-2xl border border-[#e7e1d5] bg-white shadow-xs transition-shadow hover:shadow-sm" onSubmit={submit} onChange={clear}>
       <header className="flex items-center justify-between gap-3 border-b border-line bg-[#faf8f3] p-4 sm:p-5">
         <div>
           <h2 className="text-lg font-semibold">{plan.nameEn}</h2>

@@ -23,8 +23,8 @@ export function adminPage(params: AdminQuery, total: number) {
   return { current, last, offset: (current - 1) * ADMIN_PAGE_SIZE, total };
 }
 
-export const adminCell = "px-3.5 py-3.5 sm:px-4";
-export const adminRow = "border-b border-line align-middle last:border-b-0 hover:bg-paper/65";
+export const adminCell = "px-4 py-3.5";
+export const adminRow = "border-b border-line align-middle last:border-b-0 transition-colors hover:bg-[#fcfaf5]";
 
 export function AdminHeading({ title, description, children }: { title: string; description: string; children?: ReactNode }) {
   return (
@@ -107,22 +107,24 @@ export function AdminTable({ label, path, params, page, toolbar, columns, childr
   className?: string;
 }) {
   return (
-    <section aria-label={label} className="min-w-0 overflow-hidden rounded-xl border border-[#e7e1d5] bg-white shadow-[0_2px_9px_-8px_#452e1f55]">
+    <div className="space-y-4">
       {toolbar}
-      {page.total ? (
-        <>
-          <p className="border-b border-line px-3.5 py-2 text-xs text-muted sm:hidden">Scroll to see all columns</p>
-          <div className="overflow-x-auto focus-visible:outline-offset-[-3px]" tabIndex={0} role="region" aria-label={`${label} table`}>
-            <table className={cn("w-full text-left text-[13px]", className)}>
-              <thead className="border-b border-line bg-[#faf8f3] text-xs font-semibold text-ink-2">
-                <tr>{columns.map((name) => <th key={name} scope="col" className="whitespace-nowrap px-3.5 py-3 sm:px-4">{name}</th>)}</tr>
-              </thead>
-              <tbody>{children}</tbody>
-            </table>
-          </div>
-        </>
-      ) : <div className="p-4"><EmptyState title={empty} body={Object.values(params).some(Boolean) ? "Try changing your search or filters." : undefined} /></div>}
-      <AdminPagination path={path} params={params} page={page} />
-    </section>
+      <section aria-label={label} className="min-w-0 overflow-hidden rounded-2xl border border-[#e7e1d5] bg-white shadow-xs">
+        {page.total ? (
+          <>
+            <p className="border-b border-line px-4 py-2 text-xs text-muted sm:hidden">Scroll to see all columns</p>
+            <div className="overflow-x-auto focus-visible:outline-offset-[-3px]" tabIndex={0} role="region" aria-label={`${label} table`}>
+              <table className={cn("w-full text-left text-[13px]", className)}>
+                <thead className="border-b border-[#e7e1d5] bg-[#faf8f3] text-xs font-medium text-muted">
+                  <tr>{columns.map((name) => <th key={name} scope="col" className="whitespace-nowrap px-4 py-3">{name}</th>)}</tr>
+                </thead>
+                <tbody>{children}</tbody>
+              </table>
+            </div>
+          </>
+        ) : <div className="p-4"><EmptyState title={empty} body={Object.values(params).some(Boolean) ? "Try changing your search or filters." : undefined} /></div>}
+        <AdminPagination path={path} params={params} page={page} />
+      </section>
+    </div>
   );
 }

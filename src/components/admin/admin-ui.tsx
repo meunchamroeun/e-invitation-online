@@ -176,7 +176,7 @@ export function AdminFilterToolbar({
   );
 
   return (
-    <div className="space-y-3 border-b border-line p-3.5 sm:p-4">
+    <div className="space-y-3 rounded-2xl border border-[#e7e1d5] bg-white p-4 shadow-xs">
       <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
         <form
           className="flex min-w-0 flex-1 items-center gap-2 lg:max-w-md"
@@ -285,7 +285,7 @@ export function AdminFilterToolbar({
       </div>
 
       {segmented ? (
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
           <Tabs.Root
             value={segmented.value}
             onValueChange={(val) => navigate({ [segmented.name]: String(val) })}

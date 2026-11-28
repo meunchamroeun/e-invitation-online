@@ -4,7 +4,7 @@ import { db, schema } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth/session";
 import { formatTime, shortDate } from "@/i18n/format";
 import { auditActionLabel, auditActionLabels, auditSummary, auditTargetAccount } from "@/components/admin/admin-audit";
-import { AdminFilterToolbar, AdminRowQuickMenu } from "@/components/admin/admin-ui";
+import { AdminFilterToolbar, AdminKpiStrip, AdminRowQuickMenu } from "@/components/admin/admin-ui";
 import {
   ADMIN_PAGE_SIZE, AdminHeading, AdminTable, adminCell, adminPage, adminRow, containsAdminQuery, readAdminQuery, type AdminQuery,
 } from "@/components/admin/admin-table";
@@ -27,7 +27,16 @@ export default async function AuditLogs({ searchParams }: { searchParams: Promis
   const where = and(selectedCategories, q
     ? or(ilike(auditLogs.action, match), ilike(users.email, match), actions.length ? inArray(auditLogs.action, actions) : undefined)
     : undefined);
-  const [{ total }] = await db.select({ total: count() }).from(auditLogs).leftJoin(users, eq(users.id, auditLogs.actorId)).where(where);
+
+  const scalar = async (query: Promise<{ n: number }[]>) => (await query)[0]?.n ?? 0;
+  const [totalAll, totalAdmin, totalEvent, totalBilling, [{ total }]] = await Promise.all([
+    scalar(db.select({ n: count() }).from(auditLogs)),
+    scalar(db.select({ n: count() }).from(auditLogs).where(ilike(auditLogs.action, "admin.%"))),
+    scalar(db.select({ n: count() }).from(auditLogs).where(ilike(auditLogs.action, "event.%"))),
+    scalar(db.select({ n: count() }).from(auditLogs).where(or(ilike(auditLogs.action, "billing.%"), inArray(auditLogs.action, ["admin.billing_approved", "admin.billing_rejected"])))),
+    db.select({ total: count() }).from(auditLogs).leftJoin(users, eq(users.id, auditLogs.actorId)).where(where),
+  ]);
+
   const page = adminPage(params, total);
   const rows = total ? await db.select({
     id: auditLogs.id, action: auditLogs.action, email: users.email, eventId: auditLogs.eventId, details: auditLogs.meta, date: auditLogs.createdAt,
@@ -37,6 +46,14 @@ export default async function AuditLogs({ searchParams }: { searchParams: Promis
   return (
     <>
       <AdminHeading title="Audit logs" description="Trace account, event, and billing changes. Times are shown in Phnom Penh time." />
+      <AdminKpiStrip
+        items={[
+          { label: "Total Activity", value: totalAll, hint: "All recorded events", href: path },
+          { label: "Admin Actions", value: totalAdmin, tone: "gold", hint: "System changes", href: `${path}?category=admin` },
+          { label: "Event Activity", value: totalEvent, tone: "success", hint: "Publish & edits", href: `${path}?category=event` },
+          { label: "Billing Activity", value: totalBilling, tone: "neutral", hint: "Payment reviews", href: `${path}?category=billing` },
+        ]}
+      />
       <AdminTable label="Audit activity" path={path} params={{ q, category }} page={page} empty="No matching activity" className="min-w-[41rem]"
         columns={["Action", "Actor", "When", "Details", ""]}
         toolbar={
