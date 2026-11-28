@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
-import { ArrowUpRight, CalendarDays, CreditCard, History, LayoutGrid, Layers3, PanelTop, ShieldCheck, UsersRound } from "lucide-react";
+import { ArrowUpRight, CalendarDays, CreditCard, History, LayoutGrid, Layers3, Music, PanelTop, ShieldCheck, UsersRound } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +13,7 @@ const navigation = [
   { href: "/admin/users", label: "Users", icon: UsersRound },
   { href: "/admin/events", label: "Events", icon: CalendarDays },
   { href: "/admin/templates", label: "Templates", icon: PanelTop },
+  { href: "/admin/music", label: "Music", icon: Music },
   { href: "/admin/plans", label: "Plans", icon: Layers3 },
   { href: "/admin/billing", label: "Billing", icon: CreditCard },
   { href: "/admin/audit-logs", label: "Audit logs", icon: History },

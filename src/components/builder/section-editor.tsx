@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, ImagePlus, Loader2, Lock, Plus, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ImagePlus, Loader2, Lock, Music, Plus, Trash2, X } from "lucide-react";
 import type { LText, Section } from "@/features/invitations/doc";
 import { SECTION_LABELS } from "@/features/invitations/doc";
 import { Input, Textarea, Select } from "@/components/ui";
@@ -114,7 +114,7 @@ export function MediaPicker({ c, value, onChange, purpose = "image", label, hint
   return (
     <div>
       <p className="mb-1.5 text-[13px] font-medium text-ink-2">{label}</p>
-      <div className="flex items-center gap-3">
+      <div className={purpose === "audio" ? "space-y-2.5" : "flex items-center gap-3"}>
         {purpose === "video" ? (value && !value.startsWith("placeholder:") ? <video src={value} muted playsInline preload="metadata" className="h-16 w-28 shrink-0 rounded-xl bg-black object-cover" /> : <span className="flex h-16 w-28 shrink-0 items-center justify-center rounded-xl border border-line bg-paper text-[10px] text-muted">{value ? T(c, "គំរូ", "Sample") : "—"}</span>) : purpose !== "audio" ? (
           <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-line bg-paper">
             {value && !value.startsWith("placeholder:") ? (
@@ -123,14 +123,15 @@ export function MediaPicker({ c, value, onChange, purpose = "image", label, hint
             ) : <span className="flex h-full items-center justify-center text-[10px] text-muted">{value ? T(c, "គំរូ", "Sample") : "—"}</span>}
           </div>
         ) : value ? <audio src={value} controls className="h-9 w-full" /> : null}
-        <div className="flex flex-wrap gap-1.5">
-          <button type="button" onClick={() => input.current?.click()} disabled={busy} className="inline-flex h-8 items-center gap-1.5 rounded-full border border-line-2 bg-white px-3 text-xs font-medium hover:border-ink/40">
-            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />}{T(c, "ផ្ទុកឡើង", "Upload")}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button type="button" onClick={() => input.current?.click()} disabled={busy} className="inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-line-2 bg-white px-3 text-xs font-medium hover:border-ink/40">
+            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : purpose === "audio" ? <Music className="h-3.5 w-3.5" /> : <ImagePlus className="h-3.5 w-3.5" />}
+            {purpose === "audio" ? T(c, "ផ្ទុកឡើង MP3", "Upload MP3") : T(c, "ផ្ទុកឡើង", "Upload")}
           </button>
-          {images.length ? <button type="button" onClick={() => setLib(!lib)} className="h-8 rounded-full px-3 text-xs text-ink-2 hover:bg-black/5">{T(c, "បណ្ណាល័យ", "Library")}</button> : null}
-          {value ? <button type="button" onClick={() => onChange("")} className="h-8 rounded-full px-2 text-xs text-muted hover:bg-black/5" aria-label="Remove"><X className="h-3.5 w-3.5" /></button> : null}
+          {images.length ? <button type="button" onClick={() => setLib(!lib)} className="h-8 shrink-0 whitespace-nowrap rounded-full px-3 text-xs text-ink-2 hover:bg-black/5">{T(c, "បណ្ណាល័យ", "Library")}</button> : null}
+          {value ? <button type="button" onClick={() => onChange("")} className="h-8 shrink-0 rounded-full px-2 text-xs text-muted hover:bg-black/5" aria-label="Remove"><X className="h-3.5 w-3.5" /></button> : null}
         </div>
-        <input ref={input} type="file" hidden accept={purpose === "audio" ? "audio/mpeg,audio/mp4,audio/ogg" : purpose === "video" ? "video/mp4,video/quicktime,video/webm" : "image/jpeg,image/png,image/webp"} onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }} />
+        <input ref={input} type="file" hidden accept={purpose === "audio" ? ".mp3,audio/mpeg" : purpose === "video" ? "video/mp4,video/quicktime,video/webm" : "image/jpeg,image/png,image/webp"} onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }} />
       </div>
       {hint ? <p className="mt-1 text-[11px] leading-5 text-muted">{hint}</p> : null}
       {err ? <p className="mt-1 text-xs text-danger">{err}</p> : null}

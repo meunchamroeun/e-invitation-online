@@ -195,6 +195,14 @@ export const mediaBlobs = pgTable("media_blobs", {
   data: text("data").notNull(),
 });
 
+export const musicTracks = pgTable("music_tracks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: text("title").notNull(),
+  url: text("url").notNull(),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: createdAt(),
+});
+
 /* ---------------- Guests ---------------- */
 
 export const guestGroups = pgTable(

@@ -181,6 +181,18 @@ function BuilderEditor(props: BuilderProps) {
     </div>
   );
 
+  const adminTracksQuery = useQuery({
+    queryKey: ["admin-music-tracks"],
+    queryFn: async () => {
+      const r = await fetch("/api/music");
+      if (!r.ok) return [] as Array<{ id: string; title: string; url: string }>;
+      const j = (await r.json()) as { tracks?: Array<{ id: string; title: string; url: string }> };
+      return j.tracks ?? [];
+    },
+    enabled: panel === "theme" || mobileView === "theme",
+    staleTime: 60_000,
+  });
+
   const ThemePanel = (
     <div className="space-y-3.5 bg-[#F8F6F1] p-3.5">
       <div className="rounded-2xl border border-line bg-white p-3.5 shadow-xs">
@@ -320,8 +332,35 @@ function BuilderEditor(props: BuilderProps) {
       <div className="space-y-3 rounded-2xl border border-line bg-white p-3.5 shadow-xs">
         <MediaPicker c={ctx} label={L("រូបក្របតំណធៀប (Share Preview)", "Link preview cover")} value={doc.shareImage ?? ""}
           onChange={(value) => set({ ...doc, shareImage: value })} />
-        <MediaPicker c={ctx} purpose="audio" label={L("ភ្លេងផ្ទៃខាងក្រោយ", "Background music")} value={doc.theme.music.src}
+      </div>
+
+      <div className="space-y-3 rounded-2xl border border-line bg-white p-3.5 shadow-xs">
+        <MediaPicker c={ctx} purpose="audio" label={L("ភ្លេងផ្ទៃខាងក្រោយ (MP3)", "Background music (MP3)")} value={doc.theme.music.src}
           onChange={(v) => set({ ...doc, theme: { ...doc.theme, music: { ...doc.theme.music, src: v } } })} />
+        {(adminTracksQuery.data?.length ?? 0) > 0 ? (
+          <div className="border-t border-line pt-2.5">
+            <p className="mb-1.5 text-[11px] font-medium text-muted">{L("ឬជ្រើសភ្លេងពីប្រព័ន្ធ (Admin)", "Or choose from Admin library")}</p>
+            <div className="max-h-40 space-y-1 overflow-y-auto pr-0.5">
+              {adminTracksQuery.data!.map((tr) => {
+                const active = doc.theme.music.src === tr.url;
+                return (
+                  <button
+                    key={tr.id}
+                    type="button"
+                    onClick={() => set({ ...doc, theme: { ...doc.theme, music: { src: tr.url, title: tr.title } } }, "music.preset")}
+                    className={cn(
+                      "flex w-full items-center justify-between gap-2 rounded-xl border px-2.5 py-2 text-left text-xs transition-all",
+                      active ? "border-gold bg-gold-soft/45 font-medium text-ink shadow-xs" : "border-line bg-paper/40 text-ink-2 hover:bg-white",
+                    )}
+                  >
+                    <span className="truncate" dir="auto">🎵 {tr.title}</span>
+                    {active ? <span className="shrink-0 text-[11px] text-gold-2">✓</span> : null}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );
