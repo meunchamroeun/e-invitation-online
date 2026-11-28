@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { and, count, desc, eq, ilike, isNotNull, isNull, or } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth/session";
@@ -11,6 +12,12 @@ import {
 
 const path = "/admin/users";
 const statuses = [["", "All"], ["active", "Active"], ["suspended", "Suspended"], ["deleted", "Deleted"]] as const;
+
+function gravatarUrl(email: string) {
+  if (email.endsWith("@telegram.local")) return null;
+  const hash = createHash("md5").update(email.trim().toLowerCase()).digest("hex");
+  return `https://www.gravatar.com/avatar/${hash}?d=404&s=96`;
+}
 
 export default async function AdminUsers({ searchParams }: { searchParams: Promise<AdminQuery> }) {
   const admin = await requireAdmin();
@@ -41,10 +48,25 @@ export default async function AdminUsers({ searchParams }: { searchParams: Promi
   ]);
 
   const page = adminPage(params, total);
-  const rows = total ? await db.select({
-    id: users.id, name: users.name, email: users.email, createdAt: users.createdAt, role: users.role,
-    planCode: users.planCode, deleted: users.deletedAt, suspended: users.suspendedAt,
-  }).from(users).where(where).orderBy(desc(users.createdAt), desc(users.id)).limit(ADMIN_PAGE_SIZE).offset(page.offset) : [];
+  let rows: {
+    id: string; name: string; email: string; avatarUrl: string | null; createdAt: Date; role: string;
+    planCode: string; deleted: Date | null; suspended: Date | null;
+  }[] = [];
+
+  if (total) {
+    try {
+      rows = await db.select({
+        id: users.id, name: users.name, email: users.email, avatarUrl: users.avatarUrl, createdAt: users.createdAt, role: users.role,
+        planCode: users.planCode, deleted: users.deletedAt, suspended: users.suspendedAt,
+      }).from(users).where(where).orderBy(desc(users.createdAt), desc(users.id)).limit(ADMIN_PAGE_SIZE).offset(page.offset);
+    } catch {
+      const fallback = await db.select({
+        id: users.id, name: users.name, email: users.email, createdAt: users.createdAt, role: users.role,
+        planCode: users.planCode, deleted: users.deletedAt, suspended: users.suspendedAt,
+      }).from(users).where(where).orderBy(desc(users.createdAt), desc(users.id)).limit(ADMIN_PAGE_SIZE).offset(page.offset);
+      rows = fallback.map((r) => ({ ...r, avatarUrl: null }));
+    }
+  }
 
   return (
     <>
@@ -72,7 +94,20 @@ export default async function AdminUsers({ searchParams }: { searchParams: Promi
           />
         }
       >
-        {rows.map((u) => <AdminUserRow key={u.id} user={{ ...u, createdAt: shortDate(u.createdAt, "en"), deleted: !!u.deleted, suspended: !!u.suspended }} plans={plans} isSelf={u.id === admin.id} />)}
+        {rows.map((u) => (
+          <AdminUserRow
+            key={u.id}
+            user={{
+              ...u,
+              avatarUrl: u.avatarUrl ?? gravatarUrl(u.email),
+              createdAt: shortDate(u.createdAt, "en"),
+              deleted: !!u.deleted,
+              suspended: !!u.suspended,
+            }}
+            plans={plans}
+            isSelf={u.id === admin.id}
+          />
+        ))}
       </AdminTable>
     </>
   );

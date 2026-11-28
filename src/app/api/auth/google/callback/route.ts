@@ -54,12 +54,13 @@ export async function GET(req: NextRequest) {
     headers: { authorization: `Bearer ${tokens.access_token}` },
   });
   if (!userRes.ok) return NextResponse.redirect(new URL("/login?error=oauth_failed", req.url));
-  const profile = (await userRes.json()) as { email?: string; email_verified?: boolean; name?: string };
+  const profile = (await userRes.json()) as { email?: string; email_verified?: boolean; name?: string; picture?: string };
   if (!profile.email || !profile.email_verified) {
     return NextResponse.redirect(new URL("/login?error=oauth_failed", req.url));
   }
 
   const email = profile.email.trim().toLowerCase();
+  const avatarUrl = typeof profile.picture === "string" && profile.picture.startsWith("https://") ? profile.picture.slice(0, 500) : null;
   const [existing] = await db.select().from(schema.users).where(eq(schema.users.email, email)).limit(1);
   let userId = existing?.id;
   if (existing?.deletedAt || existing?.suspendedAt) return NextResponse.redirect(new URL("/login?error=oauth_failed", req.url));
@@ -69,11 +70,14 @@ export async function GET(req: NextRequest) {
       .values({
         email,
         name: (profile.name || email.split("@")[0]).slice(0, 80),
+        avatarUrl,
         passwordHash: "oauth:google",
         locale: "km",
       })
       .returning({ id: schema.users.id });
     userId = created.id;
+  } else if (avatarUrl && existing.avatarUrl !== avatarUrl) {
+    await db.update(schema.users).set({ avatarUrl, updatedAt: new Date() }).where(eq(schema.users.id, userId));
   }
 
   if (!(await createSession(userId))) return NextResponse.redirect(new URL("/login?error=oauth_failed", req.url));

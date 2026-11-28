@@ -39,6 +39,7 @@ async function handleTelegramUser(data: Record<string, string>) {
 
   const email = `tg_${tg.id}@telegram.local`;
   const displayName = [tg.first_name, tg.last_name].filter(Boolean).join(" ").trim() || tg.username || `Telegram ${tg.id}`;
+  const avatarUrl = typeof tg.photo_url === "string" && tg.photo_url.startsWith("https://") ? tg.photo_url.slice(0, 500) : null;
   const [existing] = await db.select().from(schema.users).where(eq(schema.users.email, email)).limit(1);
   if (existing?.deletedAt || existing?.suspendedAt) return null;
 
@@ -46,9 +47,11 @@ async function handleTelegramUser(data: Record<string, string>) {
   if (!userId) {
     const [created] = await db
       .insert(schema.users)
-      .values({ email, name: displayName.slice(0, 80), passwordHash: "oauth:telegram", locale: "km" })
+      .values({ email, name: displayName.slice(0, 80), avatarUrl, passwordHash: "oauth:telegram", locale: "km" })
       .returning({ id: schema.users.id });
     userId = created.id;
+  } else if (avatarUrl && existing.avatarUrl !== avatarUrl) {
+    await db.update(schema.users).set({ avatarUrl, updatedAt: new Date() }).where(eq(schema.users.id, userId));
   }
   if (!(await createSession(userId))) return null;
   await audit(existing ? "user.login.telegram" : "user.register.telegram", { actorId: userId });

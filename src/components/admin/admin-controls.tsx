@@ -2,6 +2,7 @@
 
 import { useId, useState, useTransition, type FormEvent } from "react";
 import Link from "next/link";
+import { Avatar } from "@base-ui/react/avatar";
 import { Archive, ArrowUpRight, BadgeCheck, CircleAlert, PencilLine, RotateCcw } from "lucide-react";
 import type { ActionResult } from "@/features/events/actions";
 import {
@@ -60,7 +61,25 @@ function AdminFeedback({ value }: { value: Feedback | null }) {
   );
 }
 
-type User = { id: string; name: string; email: string; createdAt: string; planCode: string; role: string; deleted: boolean; suspended: boolean };
+type User = { id: string; name: string; email: string; avatarUrl?: string | null; createdAt: string; planCode: string; role: string; deleted: boolean; suspended: boolean };
+
+function UserAvatar({ name, avatarUrl }: { name: string; avatarUrl?: string | null }) {
+  const initials = name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((p) => p.charAt(0).toUpperCase())
+    .join("") || "?";
+
+  return (
+    <Avatar.Root className="relative inline-flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#e7e1d5] bg-[#f4eddf] text-xs font-semibold text-[#765124] select-none">
+      {avatarUrl ? (
+        <Avatar.Image src={avatarUrl} alt={name} className="size-full object-cover" />
+      ) : null}
+      <Avatar.Fallback className="grid size-full place-items-center">{initials}</Avatar.Fallback>
+    </Avatar.Root>
+  );
+}
 type PlanOption = { code: string; name: string; active: boolean };
 
 function UserSettings({ user, plans, isSelf }: { user: User; plans: PlanOption[]; isSelf: boolean }) {
@@ -153,8 +172,13 @@ export function AdminUserRow({ user, plans, isSelf }: { user: User; plans: PlanO
   return (
     <tr className={adminRow}>
       <td className={adminCell}>
-        <p className="max-w-[16rem] min-w-28 break-words font-semibold sm:max-w-none" dir="auto">{user.name} {isSelf ? <span className="ml-1 text-xs font-normal text-muted">(you)</span> : null}</p>
-        <p className="mt-0.5 max-w-[15rem] break-all text-xs text-muted">{user.email}</p>
+        <div className="flex items-center gap-3">
+          <UserAvatar name={user.name} avatarUrl={user.avatarUrl} />
+          <div className="min-w-0">
+            <p className="max-w-[16rem] min-w-28 break-words font-semibold sm:max-w-none" dir="auto">{user.name} {isSelf ? <span className="ml-1 text-xs font-normal text-muted">(you)</span> : null}</p>
+            <p className="mt-0.5 max-w-[15rem] break-all text-xs text-muted">{user.email}</p>
+          </div>
+        </div>
       </td>
       <td className={`${adminCell} whitespace-nowrap text-muted`}>{user.createdAt}</td>
       <td className={adminCell}>{plans.find((plan) => plan.code === user.planCode)?.name ?? user.planCode}</td>

@@ -25,6 +25,7 @@ export const users = pgTable(
     email: text("email").notNull(),
     passwordHash: text("password_hash").notNull(),
     name: text("name").notNull(),
+    avatarUrl: text("avatar_url"),
     locale: text("locale").notNull().default("km"),
     role: text("role").notNull().default("user"), // user | super_admin
     planCode: text("plan_code").notNull().default("free"),
