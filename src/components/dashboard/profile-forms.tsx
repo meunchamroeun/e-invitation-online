@@ -197,7 +197,7 @@ export function ProfileForms({
   };
 
   return (
-    <div ref={rootRef} className="max-w-3xl space-y-5 pb-12">
+    <div ref={rootRef} className="w-full space-y-5 pb-12">
       {/* Profile Hero Card (GSAP + Base UI Avatar + Radix Dropdown + cva) */}
       <div className={heroCardVariants({ tier: isPaid ? "paid" : "free" })}>
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
@@ -298,7 +298,7 @@ export function ProfileForms({
       <Tabs.Root value={tab} onValueChange={(v) => setTab(v as ProfileTab)}>
         <Tabs.List
           aria-label={L("ផ្នែកកំណត់", "Profile sections")}
-          className="profile-stagger inline-flex w-full flex-wrap items-center gap-1 rounded-2xl border border-[#e7e1d5] bg-[#faf8f3] p-1 sm:w-auto"
+          className="profile-stagger grid w-full grid-cols-3 items-center gap-1 rounded-2xl border border-[#e7e1d5] bg-[#faf8f3] p-1"
         >
           {(
             [
@@ -313,7 +313,7 @@ export function ProfileForms({
                 key={key}
                 value={key}
                 className={cn(
-                  "relative z-10 inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-medium transition-colors sm:flex-initial",
+                  "relative z-10 inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-medium transition-colors sm:px-4",
                   active ? "text-[#241c19]" : "text-muted hover:text-ink",
                 )}
               >
